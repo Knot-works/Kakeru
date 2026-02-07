@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Users: each user can read/write their own data
+    match /users/{userId} {
+      // Profile: readable by owner, writable but plan field cannot be changed by client
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && request.resource.data.plan == "free";
+      allow update: if isOwner(userId)
+                    && request.resource.data.plan == resource.data.plan;
+
+      // Daily usage tracking: read-only for clients (written by Cloud Functions)
+      match /dailyUsage/{date} {
+        allow read: if isOwner(userId);
+      }
+
+      // Writings
+      match /writings/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Vocabulary
+      match /vocabulary/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Meta (stats etc)
+      match /meta/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Daily prompts: shared, cached, read-only for clients
+    match /dailyPrompts/{date} {
+      allow read: if request.auth != null;
+    }
+
+    // Global usage: no client access (admin SDK only)
+    // No rules = no client access
+  }
+}
