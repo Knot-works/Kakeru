@@ -53,7 +53,7 @@ type RateLimitedOperation = "generatePrompt" | "gradeWriting" | "lookupWord";
 
 // Token limits per month
 const TOKEN_LIMITS: Record<string, number> = {
-  free: 15_000,      // ~3-4 sessions (体験版)
+  free: 10_000,      // ~2-3 sessions (体験版)
   pro: 2_000_000,    // ~800 gradings
 };
 

@@ -2,7 +2,7 @@ import type { Plan } from "@/types";
 
 // Token-based limits (monthly)
 export const TOKEN_LIMITS: Record<Plan, number> = {
-  free: 50_000,      // ~20 gradings
+  free: 10_000,      // ~2-3 sessions (体験版)
   pro: 2_000_000,    // ~800 gradings
 };
 

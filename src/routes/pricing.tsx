@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 
 const FREE_FEATURES = [
-  { text: "月間50,000トークン", included: true },
-  { text: "添削 約20回/月", included: true },
+  { text: "月間10,000トークン", included: true },
+  { text: "添削 約3回/月（体験版）", included: true },
   { text: "標準モデルで添削", included: true },
   { text: "学習履歴 7日間", included: true },
   { text: "単語帳 50件まで", included: true },
