@@ -8,11 +8,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { App } from "./App";
 import "./index.css";
 
-const basename = import.meta.env.PROD ? "/Kakeru" : "/";
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter basename={basename}>
+    <BrowserRouter>
       <ScrollToTop />
       <AuthProvider>
         <TokenProvider>
