@@ -291,8 +291,19 @@ function buildPromptSystemMessage(
 ユーザーの興味「${allInterests}」も考慮して、より関連性の高いお題にしてください。`;
   } else if (mode === "hobby") {
     if (customInput) {
-      modeInstruction = `【趣味・興味モード】
-ユーザーが指定したテーマ「${customInput}」に関連するお題を出してください。`;
+      // Custom topic specified - focus purely on the topic, no personalization
+      modeInstruction = `【趣味・興味モード - トピック指定】
+ユーザーが指定したテーマ「${customInput}」についてのお題を出してください。
+
+⚠️ 重要なルール:
+1. ユーザーのプロフィール情報（職業、部活、専攻など）と無理に関連付けないでください
+2. シンプルにそのトピック自体について書くお題にしてください
+3. 固有名詞（バンド名、映画、ゲームなど）はそのまま固有名詞として扱ってください
+
+お題の例:
+- 「Oasis」→ 「好きなOasisの曲とその魅力を友人に紹介してください」
+- 「料理」→ 「最近作った料理とそのレシピを紹介してください」
+- 「サッカー」→ 「好きなサッカーチームや選手について紹介してください」`;
     } else {
       // Use randomly selected interest for variety
       modeInstruction = `【趣味・興味モード】
@@ -333,7 +344,10 @@ function buildPromptSystemMessage(
 キーワード「${customInput}」について、そのトピック自体を語るお題を作成してください。`;
   }
 
-  const personaInstruction = persona
+  // Skip personalization when user specifies exact topic (hobby with topic or custom mode)
+  const skipPersonalization = (mode === "hobby" && customInput) || mode === "custom";
+
+  const personaInstruction = persona && !skipPersonalization
     ? `\n\n【パーソナライズ指示】
 ユーザー属性: ${persona}
 
@@ -347,14 +361,21 @@ function buildPromptSystemMessage(
 ユーザーが「あ、これ実際に使うかも」と思える具体的なシチュエーションにしてください。`
     : "";
 
-  return `あなたは英語ライティングの教師です。以下の条件で英作文のお題を1つ生成してください。
-
-【ユーザー情報】
+  // For hobby mode with custom topic, only include level info (no profile details)
+  const userInfoSection = skipPersonalization
+    ? `【ユーザー情報】
+- レベル: ${levelDesc}
+${profile.toeicScore ? `- TOEICスコア: ${profile.toeicScore}` : ""}`
+    : `【ユーザー情報】
 - レベル: ${levelDesc}
 ${profile.toeicScore ? `- TOEICスコア: ${profile.toeicScore}` : ""}
 - 目標: ${GOAL_MAP[profile.goal] || profile.goal}
 - 興味: ${allInterests}
-${persona ? `- 属性: ${persona}` : ""}
+${persona ? `- 属性: ${persona}` : ""}`;
+
+  return `あなたは英語ライティングの教師です。以下の条件で英作文のお題を1つ生成してください。
+
+${userInfoSection}
 
 【モード】
 ${modeInstruction}${personaInstruction}
