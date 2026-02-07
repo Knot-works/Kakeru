@@ -18,7 +18,7 @@ export function TagInput({
   const [inputValue, setInputValue] = useState("");
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
       e.preventDefault();
       const trimmed = inputValue.trim();
       if (trimmed && !tags.includes(trimmed) && tags.length < maxTags) {

@@ -141,7 +141,7 @@ export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
             placeholder="英単語や表現を検索..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && handleSearch()}
             maxLength={100}
             className="h-9 pl-9 pr-16 text-sm"
           />

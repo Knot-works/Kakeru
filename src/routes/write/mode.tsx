@@ -199,7 +199,7 @@ export default function WritingPage() {
                   }
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCustomSubmit()}
+                  onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && handleCustomSubmit()}
                   maxLength={500}
                 />
                 <Button
@@ -303,6 +303,7 @@ export default function WritingPage() {
                           onChange={(e) => setHobbyTopic(e.target.value)}
                           onKeyDown={(e) =>
                             e.key === "Enter" &&
+                            !e.nativeEvent.isComposing &&
                             hobbyTopic.trim() &&
                             generatePrompt(hobbyTopic)
                           }
