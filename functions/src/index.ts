@@ -386,8 +386,12 @@ ${modeInstruction}${personaInstruction}
   "prompt": "お題（日本語で記述）",
   "hint": "ヒントとなる英語表現（1〜2個）",
   "recommendedWords": 推奨語数（数値）,
-  "exampleJa": "このお題に対する日本語の例文（ユーザーが参考にできる具体的な内容）"
+  "exampleJa": "このお題に対する日本語の例文（ユーザーが参考にできる具体的な内容）",
+  "keywords": ["キーワード1", "キーワード2", "キーワード3"]
 }
+
+keywordsには、このお題の回答で使うと良い英単語・英語表現を3つ選んでください。
+レベルに応じた難易度で、実際に使いやすい表現を選んでください。
 
 お題は具体的なシチュエーションを設定し、レベルに応じた語数を推奨してください。
 初級: 30-50語、中級: 60-100語、上級: 100-150語を目安にしてください。
@@ -441,7 +445,8 @@ ${userAnswer}
       "original": "元の表現",
       "suggested": "改善案",
       "explanation": "解説",
-      "type": "grammar|vocabulary|structure|content"
+      "type": "grammar|vocabulary|structure|content",
+      "subType": "詳細カテゴリ（下記参照）"
     }
   ],
   "vocabularyItems": [
@@ -451,10 +456,68 @@ ${userAnswer}
       "type": "word|expression"
     }
   ],
+  "structureAnalysis": {
+    "blocks": [
+      {
+        "role": "opinion|reason|example|counter|conclusion",
+        "text": "該当する文章をそのまま抜き出し",
+        "sentenceIndices": [0, 1]
+      }
+    ],
+    "missingElements": ["欠けている構造要素のrole"],
+    "feedback": "構成についてのアドバイス（1文）"
+  },
   "modelAnswer": "模範解答（同じお題に対する理想的な回答）"
 }
 
 ${langInstruction}
+
+【structureAnalysisについて】
+ユーザーの回答を以下の構造要素に分類してください：
+- opinion: 意見・主張（I think, I believe, In my opinion など）
+- reason: 理由（because, since, The reason is など）
+- example: 具体例・詳細説明（For example, For instance, such as など）
+- counter: 反論・対比（However, On the other hand, Although など）
+- conclusion: 結論（Therefore, In conclusion, To sum up など）
+
+blocksには、ユーザーが実際に書いた文章を役割ごとに分類してください。
+sentenceIndicesは文の番号（0から開始）です。
+missingElementsには、良い文章構成に必要だが書かれていない要素を挙げてください。
+短い文章では全要素が揃わなくても問題ありません。最低限「opinion」と「reason」があれば良い構成です。
+
+【improvementsのsubTypeについて】
+各改善点には詳細なカテゴリ(subType)を必ず付けてください：
+
+grammarの場合:
+- articles: 冠詞(a/the)の誤り
+- tense: 時制の誤り
+- agreement: 主語と動詞の一致
+- prepositions: 前置詞の誤り
+- word_order: 語順の誤り
+- plurals: 複数形の誤り
+- modals: 助動詞の誤り
+- conditionals: 条件文の誤り
+- other_grammar: その他の文法
+
+vocabularyの場合:
+- word_choice: 語彙選択の誤り
+- collocation: コロケーションの誤り
+- formality: フォーマル度の誤り
+- spelling: スペルミス
+- other_vocab: その他の語彙
+
+structureの場合:
+- missing_intro: 導入不足
+- missing_conclusion: 結論不足
+- transitions: 接続詞・つなぎの問題
+- paragraph: 段落構成の問題
+- other_structure: その他の構成
+
+contentの場合:
+- off_topic: 的外れ
+- insufficient_detail: 詳細不足
+- unclear: 不明瞭
+- other_content: その他の内容
 
 【vocabularyItemsについて】
 ユーザーが使えていなかった、または間違えていた重要な単語・表現を抽出してください。
@@ -477,7 +540,13 @@ ${langInstruction}
 
 ${vocabInstruction}
 
-改善点は3〜5個、vocabularyItemsは2〜5個挙げてください。模範解答はユーザーの意図を汲みつつ、より自然な表現で書いてください。`;
+改善点は3〜5個、vocabularyItemsは2〜5個挙げてください。
+
+【模範解答について】
+- ユーザーの意図を汲みつつ、より自然な表現で書いてください
+- 論理構造に応じて適切に段落分けしてください（改行2つ \\n\\n で区切る）
+- 目安: 導入（意見表明）→ 本論（理由・具体例）→ 結論 で段落を分ける
+- 短い回答（50語以下）では段落分け不要、中〜長文では2〜3段落が適切`;
 }
 
 function parseJsonResponse(text: string): unknown {
@@ -555,12 +624,16 @@ export const generatePrompt = onCall(
         prompt: string;
         hint: string;
         recommendedWords: number;
+        exampleJa?: string;
+        keywords?: string[];
       };
 
       return {
         prompt: result.prompt,
         hint: result.hint,
         recommendedWords: result.recommendedWords,
+        exampleJa: result.exampleJa,
+        keywords: result.keywords || [],
       };
     } catch (error: unknown) {
       if (error instanceof HttpsError) throw error;
@@ -811,12 +884,22 @@ export const gradeWriting = onCall(
           suggested: string;
           explanation: string;
           type: string;
+          subType?: string;
         }>;
         vocabularyItems?: Array<{
           term: string;
           meaning: string;
           type: "word" | "expression";
         }>;
+        structureAnalysis?: {
+          blocks: Array<{
+            role: string;
+            text: string;
+            sentenceIndices: number[];
+          }>;
+          missingElements: string[];
+          feedback?: string;
+        };
         modelAnswer: string;
       };
 
