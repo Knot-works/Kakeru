@@ -11,6 +11,7 @@ interface PromptResponse {
   hint: string;
   recommendedWords: number;
   exampleJa?: string;
+  keywords?: string[];
 }
 
 interface ProfileData {

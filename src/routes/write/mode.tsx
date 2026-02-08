@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
 import { useToken } from "@/contexts/token-context";
-import { saveWriting } from "@/lib/firestore";
+import { saveWriting, saveMistakes } from "@/lib/firestore";
 import { callGeneratePrompt, callGradeWriting, isRateLimitError, getRateLimitMessage } from "@/lib/functions";
 import { getEstimatedRemaining, formatTokens } from "@/lib/rate-limits";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Tag,
 } from "lucide-react";
 import { type WritingMode, MODE_LABELS } from "@/types";
 
@@ -41,6 +42,7 @@ export default function WritingPage() {
   const [hint, setHint] = useState(dailyPrompt?.hint || "");
   const [recommendedWords, setRecommendedWords] = useState(dailyPrompt?.recommendedWords || 80);
   const [exampleJa, setExampleJa] = useState(dailyPrompt?.exampleJa || "");
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [showExample, setShowExample] = useState(false);
   const [userAnswer, setUserAnswer] = useState("");
   const [customInput, setCustomInput] = useState("");
@@ -68,6 +70,7 @@ export default function WritingPage() {
       setHint(result.hint);
       setRecommendedWords(result.recommendedWords);
       setExampleJa(result.exampleJa || "");
+      setKeywords(result.keywords || []);
     } catch (error) {
       console.error("Failed to generate prompt:", error);
       if (isRateLimitError(error)) {
@@ -96,6 +99,7 @@ export default function WritingPage() {
       setHint(result.hint);
       setRecommendedWords(result.recommendedWords);
       setExampleJa(result.exampleJa || "");
+      setKeywords(result.keywords || []);
     } catch (error) {
       console.error("Failed to generate prompt:", error);
       if (mode === "expression") {
@@ -105,11 +109,13 @@ export default function WritingPage() {
         setHint(customInput);
         setRecommendedWords(60);
         setExampleJa("");
+        setKeywords([]);
       } else {
         setPrompt(customInput);
         setHint("");
         setRecommendedWords(80);
         setExampleJa("");
+        setKeywords([]);
       }
       toast.error("AI生成に失敗しました。入力したお題をそのまま使用します。");
     } finally {
@@ -138,6 +144,13 @@ export default function WritingPage() {
         feedback,
         wordCount,
       });
+
+      // Save mistakes for the mistake journal (don't await - fire and forget)
+      if (feedback.improvements && feedback.improvements.length > 0) {
+        saveMistakes(user.uid, feedback.improvements, writingId, prompt).catch(
+          (err) => console.error("Failed to save mistakes:", err)
+        );
+      }
 
       navigate(`/write/result/${writingId}`);
     } catch (error) {
@@ -250,7 +263,7 @@ export default function WritingPage() {
                   <p className="font-serif text-xl leading-relaxed">
                     {prompt}
                   </p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <Badge variant="secondary">
                       推奨: {recommendedWords}語
                     </Badge>
@@ -261,6 +274,24 @@ export default function WritingPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Keywords */}
+                  {keywords.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap mt-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Tag className="h-3 w-3" />
+                        <span>使える表現:</span>
+                      </div>
+                      {keywords.map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Japanese Example Toggle */}
                   {exampleJa && (
@@ -298,7 +329,7 @@ export default function WritingPage() {
                       </p>
                       <div className="flex gap-2">
                         <Input
-                          placeholder='例: "好きなバンドOasisについて"'
+                          placeholder='例: "最近見た映画について"'
                           value={hobbyTopic}
                           onChange={(e) => setHobbyTopic(e.target.value)}
                           onKeyDown={(e) =>

@@ -8,7 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { RankBadge } from "@/components/writing/rank-badge";
 import { ChatPanel } from "@/components/writing/chat-panel";
 import { SentenceFeedback } from "@/components/writing/sentence-feedback";
+import { StructureAnalysis } from "@/components/writing/structure-analysis";
 import { LearningPoints } from "@/components/writing/learning-points";
+import { SelectionPopover } from "@/components/ui/selection-popover";
 import {
   ArrowLeft,
   BookOpen,
@@ -18,6 +20,8 @@ import {
   Check,
   MessageCircle,
   FileText,
+  Volume2,
+  Square,
 } from "lucide-react";
 import {
   type Writing,
@@ -34,6 +38,7 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [chatOpen, setChatOpen] = useState(false); // Start closed on mobile
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -78,6 +83,35 @@ export default function ResultPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSpeak = () => {
+    if (!writing?.feedback.modelAnswer) return;
+
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(writing.feedback.modelAnswer);
+    utterance.lang = "en-US";
+    utterance.rate = 0.9; // Slightly slower for learning
+
+    // Try to find a good English voice
+    const voices = speechSynthesis.getVoices();
+    const englishVoice = voices.find(
+      (v) => v.lang.startsWith("en") && v.name.includes("Female")
+    ) || voices.find((v) => v.lang.startsWith("en-US"));
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    speechSynthesis.speak(utterance);
+  };
+
   // Handle asking about a specific improvement
   const handleAskAboutImprovement = useCallback(
     (index: number, improvement: Improvement) => {
@@ -89,6 +123,22 @@ export default function ResultPage() {
           askAboutImprovement?: (index: number, improvement: Improvement) => void;
         };
         panel?.askAboutImprovement?.(index, improvement);
+      }, 100);
+    },
+    []
+  );
+
+  // Handle asking about selected text
+  const handleAskAboutSelection = useCallback(
+    (selectedText: string) => {
+      // Open chat panel if closed
+      setChatOpen(true);
+      // Trigger the chat panel to ask about this selection
+      setTimeout(() => {
+        const panel = document.getElementById("chat-panel") as HTMLElement & {
+          askAboutSelection?: (text: string) => void;
+        };
+        panel?.askAboutSelection?.(selectedText);
       }, 100);
     },
     []
@@ -227,8 +277,18 @@ export default function ResultPage() {
           />
         </div>
 
+        {/* Structure Analysis - Show text structure */}
+        {feedback.structureAnalysis && (
+          <div className="animate-fade-in-up stagger-3">
+            <StructureAnalysis
+              userAnswer={writing.userAnswer}
+              structureAnalysis={feedback.structureAnalysis}
+            />
+          </div>
+        )}
+
         {/* Learning Points - Add to vocabulary */}
-        <div className="animate-fade-in-up stagger-3">
+        <div className="animate-fade-in-up stagger-4">
           <LearningPoints
             vocabularyItems={feedback.vocabularyItems}
             sourcePrompt={writing.prompt}
@@ -236,7 +296,7 @@ export default function ResultPage() {
         </div>
 
         {/* Model Answer */}
-        <div className="space-y-4 animate-fade-in-up stagger-4">
+        <div className="space-y-4 animate-fade-in-up stagger-5">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
               <BookOpen className="h-4 w-4 text-primary" />
@@ -246,11 +306,31 @@ export default function ResultPage() {
 
           <Card className="border-primary/10 bg-gradient-to-br from-primary/[0.02] to-transparent">
             <CardContent className="p-6 space-y-4">
-              <p className="whitespace-pre-wrap leading-[1.9] text-foreground/90">
-                {feedback.modelAnswer}
-              </p>
+              <SelectionPopover onAsk={handleAskAboutSelection}>
+                <p className="whitespace-pre-wrap leading-[1.9] text-foreground/90 select-text">
+                  {feedback.modelAnswer}
+                </p>
+              </SelectionPopover>
               <Separator className="bg-border/40" />
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  onClick={handleSpeak}
+                >
+                  {isSpeaking ? (
+                    <>
+                      <Square className="h-3.5 w-3.5 text-primary" />
+                      停止
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="h-3.5 w-3.5" />
+                      読み上げ
+                    </>
+                  )}
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -274,20 +354,34 @@ export default function ResultPage() {
           </Card>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center animate-fade-in-up stagger-5 pb-8">
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => navigate(`/write/${writing.mode}`)}
-          >
-            <PenLine className="h-4 w-4" />
-            同じモードで練習
-          </Button>
-          <Button className="gap-2" onClick={() => navigate("/write")}>
-            新しいお題に挑戦
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+        {/* Next Challenge CTA */}
+        <div className="animate-fade-in-up stagger-6 pb-8">
+          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  続けて練習すると効果的です
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => navigate(`/write/${writing.mode}`)}
+                  >
+                    <PenLine className="h-4 w-4" />
+                    同じモードで練習
+                  </Button>
+                  <Button
+                    className="gap-2 bg-primary hover:bg-primary/90 shadow-md shadow-primary/20"
+                    onClick={() => navigate("/write")}
+                  >
+                    次のお題に挑戦
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
