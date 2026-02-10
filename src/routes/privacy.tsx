@@ -12,7 +12,7 @@ export default function PrivacyPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium">Kakeru</span>
+            <span className="font-serif text-lg font-medium">Writto</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/" className="gap-1.5">
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="font-serif text-xl font-medium mb-4">1. はじめに</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Kakeru（以下「当サービス」）は、ユーザーの皆様のプライバシーを尊重し、個人情報の保護に努めています。本プライバシーポリシーは、当サービスにおける個人情報の取り扱いについて説明します。
+                Writto（以下「当サービス」）は、ユーザーの皆様のプライバシーを尊重し、個人情報の保護に努めています。本プライバシーポリシーは、当サービスにおける個人情報の取り扱いについて説明します。
               </p>
             </section>
 
@@ -178,10 +178,10 @@ export default function PrivacyPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-sm font-medium">Kakeru</span>
+            <span className="font-serif text-base font-medium">Writto</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            &copy; 2026 Kakeru
+            &copy; 2026 Writto
           </p>
         </div>
       </footer>

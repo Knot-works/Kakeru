@@ -12,7 +12,7 @@ export default function TermsPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium">Kakeru</span>
+            <span className="font-serif text-lg font-medium">Writto</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/" className="gap-1.5">
@@ -40,7 +40,7 @@ export default function TermsPage() {
             <section>
               <h2 className="font-serif text-xl font-medium mb-4">第1条（適用）</h2>
               <p className="text-muted-foreground leading-relaxed">
-                本利用規約（以下「本規約」）は、Kakeru（以下「当サービス」）の利用に関する条件を定めるものです。ユーザーは、本規約に同意の上、当サービスを利用するものとします。
+                本利用規約（以下「本規約」）は、Writto（以下「当サービス」）の利用に関する条件を定めるものです。ユーザーは、本規約に同意の上、当サービスを利用するものとします。
               </p>
             </section>
 
@@ -206,10 +206,10 @@ export default function TermsPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-sm font-medium">Kakeru</span>
+            <span className="font-serif text-base font-medium">Writto</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            &copy; 2026 Kakeru
+            &copy; 2026 Writto
           </p>
         </div>
       </footer>

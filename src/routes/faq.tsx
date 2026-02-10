@@ -14,8 +14,8 @@ const FAQ_ITEMS: FAQItem[] = [
   // サービスについて
   {
     category: "サービスについて",
-    question: "Kakeruとはどのようなサービスですか？",
-    answer: "Kakeruは、AIを活用した英語ライティング学習サービスです。あなたの目標や興味に合わせたお題でライティング練習を行い、AIが即座に添削・フィードバックを提供します。",
+    question: "Writtoとはどのようなサービスですか？",
+    answer: "Writtoは、AIを活用した英語ライティング学習サービスです。あなたの目標や興味に合わせたお題でライティング練習を行い、AIが即座に添削・フィードバックを提供します。",
   },
   {
     category: "サービスについて",
@@ -36,7 +36,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     category: "料金・プラン",
     question: "トークンとは何ですか？",
-    answer: "トークンはAIが処理するテキストの単位です。添削1回で約2,500トークン、お題生成で約800トークンを消費します。無料プランでは月間10,000トークン（約3セッション）まで利用できます。",
+    answer: "トークンはAIが処理するテキストの単位です。添削1回で約2,500トークン、お題生成で約1,100トークンを消費します。無料プランでは累計20,000トークン（約6セッション分）までお試しいただけます。",
   },
   {
     category: "料金・プラン",
@@ -128,7 +128,7 @@ export default function FAQPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium">Kakeru</span>
+            <span className="font-serif text-lg font-medium">Writto</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/" className="gap-1.5">
@@ -147,7 +147,7 @@ export default function FAQPage() {
           </div>
           <h1 className="font-serif text-3xl">よくある質問</h1>
           <p className="mt-2 text-muted-foreground">
-            Kakeruについてのよくあるご質問にお答えします
+            Writtoについてのよくあるご質問にお答えします
           </p>
         </div>
 
@@ -200,10 +200,10 @@ export default function FAQPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-sm font-medium">Kakeru</span>
+            <span className="font-serif text-base font-medium">Writto</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            &copy; 2026 Kakeru
+            &copy; 2026 Writto
           </p>
         </div>
       </footer>

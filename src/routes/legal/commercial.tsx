@@ -12,7 +12,7 @@ export default function CommercialPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium">Kakeru</span>
+            <span className="font-serif text-lg font-medium">Writto</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/" className="gap-1.5">
@@ -43,7 +43,7 @@ export default function CommercialPage() {
                   販売事業者名
                 </th>
                 <td className="px-6 py-4 text-muted-foreground">
-                  個人事業（Kakeru運営）
+                  個人事業（Writto運営）
                 </td>
               </tr>
               <tr className="flex flex-col sm:table-row">
@@ -165,10 +165,10 @@ export default function CommercialPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-sm font-medium">Kakeru</span>
+            <span className="font-serif text-base font-medium">Writto</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            &copy; 2026 Kakeru
+            &copy; 2026 Writto
           </p>
         </div>
       </footer>

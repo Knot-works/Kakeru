@@ -31,7 +31,7 @@ export default function AboutPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium">Kakeru</span>
+            <span className="font-serif text-lg font-medium">Writto</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/" className="gap-1.5">
@@ -53,7 +53,7 @@ export default function AboutPage() {
               <PenLine className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="font-serif text-4xl text-center sm:text-5xl">Kakeru</h1>
+          <h1 className="font-serif text-4xl text-center sm:text-5xl">Writto</h1>
           <p className="mt-4 text-center text-lg text-muted-foreground max-w-2xl mx-auto">
             「書ける」自分になるための、AI英語ライティング学習サービス
           </p>
@@ -75,7 +75,7 @@ export default function AboutPage() {
                 しかし、多くの人が「何を書けばいいかわからない」「添削してくれる人がいない」という壁に直面しています。
               </p>
               <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-                Kakeruは、AIの力を借りて、一人ひとりに最適な学習体験を提供することで、
+                Writtoは、AIの力を借りて、一人ひとりに最適な学習体験を提供することで、
                 誰もが英語で自分の考えを表現できるようになることを目指しています。
               </p>
             </CardContent>
@@ -116,7 +116,7 @@ export default function AboutPage() {
                   <dt className="font-medium text-muted-foreground sm:w-32 shrink-0 mb-1 sm:mb-0">
                     サービス名
                   </dt>
-                  <dd>Kakeru（カケル）</dd>
+                  <dd>Writto（カケル）</dd>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:gap-8">
                   <dt className="font-medium text-muted-foreground sm:w-32 shrink-0 mb-1 sm:mb-0">
@@ -150,7 +150,7 @@ export default function AboutPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
             <Users className="h-6 w-6 text-primary" />
           </div>
-          <h2 className="font-serif text-xl mb-2">Kakeruを始めてみませんか？</h2>
+          <h2 className="font-serif text-xl mb-2">Writtoを始めてみませんか？</h2>
           <p className="text-muted-foreground mb-6">
             無料で始められます。まずはお試しください。
           </p>
@@ -175,10 +175,10 @@ export default function AboutPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-sm font-medium">Kakeru</span>
+            <span className="font-serif text-base font-medium">Writto</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            &copy; 2026 Kakeru
+            &copy; 2026 Writto
           </p>
         </div>
       </footer>
