@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Layers, AlertCircle, CheckCircle2 } from "lucide-react";
+import { SelectionPopover } from "@/components/ui/selection-popover";
 import {
   type StructureAnalysis as StructureAnalysisType,
   type StructureRole,
@@ -10,6 +11,7 @@ import {
 interface StructureAnalysisProps {
   userAnswer: string;
   structureAnalysis: StructureAnalysisType;
+  onAskAboutSelection?: (selectedText: string) => void;
 }
 
 // Split text into sentences for mapping
@@ -24,6 +26,7 @@ const IDEAL_STRUCTURE: StructureRole[] = ["opinion", "reason", "example", "concl
 export function StructureAnalysis({
   userAnswer,
   structureAnalysis,
+  onAskAboutSelection,
 }: StructureAnalysisProps) {
   const sentences = useMemo(() => splitIntoSentences(userAnswer), [userAnswer]);
 
@@ -95,67 +98,133 @@ export function StructureAnalysis({
 
         {/* Sentences with Structure Rail */}
         <div className="p-4">
-          <div className="space-y-0">
-            {sentences.map((sentence, index) => {
-              const roleInfo = sentenceRoleMap.get(index);
-              const role = roleInfo?.role;
-              const colors = role ? STRUCTURE_ROLE_COLORS[role] : null;
+          {onAskAboutSelection ? (
+            <SelectionPopover onAsk={onAskAboutSelection}>
+              <div className="space-y-0 select-text">
+                {sentences.map((sentence, index) => {
+                  const roleInfo = sentenceRoleMap.get(index);
+                  const role = roleInfo?.role;
+                  const colors = role ? STRUCTURE_ROLE_COLORS[role] : null;
 
-              return (
-                <div key={index} className="flex group">
-                  {/* Structure Rail */}
-                  <div className="w-16 shrink-0 flex flex-col items-end pr-3 pt-1">
-                    {role && (
-                      <span
+                  return (
+                    <div key={index} className="flex group">
+                      {/* Structure Rail */}
+                      <div className="w-16 shrink-0 flex flex-col items-end pr-3 pt-1">
+                        {role && (
+                          <span
+                            className={`
+                              text-[10px] font-semibold uppercase tracking-wide
+                              ${colors?.text || "text-muted-foreground"}
+                            `}
+                          >
+                            {STRUCTURE_ROLE_LABELS[role]}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Connector Line */}
+                      <div className="relative w-4 shrink-0">
+                        {/* Vertical line */}
+                        <div
+                          className={`
+                            absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2
+                            ${role ? colors?.bg?.replace("/10", "/40") || "bg-muted" : "bg-border/50"}
+                          `}
+                        />
+                        {/* Dot */}
+                        <div
+                          className={`
+                            absolute left-1/2 top-2.5 h-2 w-2 -translate-x-1/2 rounded-full
+                            ${role
+                              ? `${colors?.bg?.replace("/10", "")} ring-2 ring-white`
+                              : "bg-border"
+                            }
+                          `}
+                        />
+                      </div>
+
+                      {/* Sentence Text */}
+                      <div
                         className={`
-                          text-[10px] font-semibold uppercase tracking-wide
-                          ${colors?.text || "text-muted-foreground"}
+                          flex-1 py-2 pl-3 pr-2 rounded-lg transition-colors
+                          ${role
+                            ? `${colors?.bg} border-l-2 ${colors?.border?.replace("/30", "")}`
+                            : "border-l-2 border-transparent"
+                          }
                         `}
                       >
-                        {STRUCTURE_ROLE_LABELS[role]}
-                      </span>
-                    )}
-                  </div>
+                        <p className="text-[15px] leading-relaxed text-foreground/90">
+                          {sentence}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SelectionPopover>
+          ) : (
+            <div className="space-y-0">
+              {sentences.map((sentence, index) => {
+                const roleInfo = sentenceRoleMap.get(index);
+                const role = roleInfo?.role;
+                const colors = role ? STRUCTURE_ROLE_COLORS[role] : null;
 
-                  {/* Connector Line */}
-                  <div className="relative w-4 shrink-0">
-                    {/* Vertical line */}
+                return (
+                  <div key={index} className="flex group">
+                    {/* Structure Rail */}
+                    <div className="w-16 shrink-0 flex flex-col items-end pr-3 pt-1">
+                      {role && (
+                        <span
+                          className={`
+                            text-[10px] font-semibold uppercase tracking-wide
+                            ${colors?.text || "text-muted-foreground"}
+                          `}
+                        >
+                          {STRUCTURE_ROLE_LABELS[role]}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Connector Line */}
+                    <div className="relative w-4 shrink-0">
+                      {/* Vertical line */}
+                      <div
+                        className={`
+                          absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2
+                          ${role ? colors?.bg?.replace("/10", "/40") || "bg-muted" : "bg-border/50"}
+                        `}
+                      />
+                      {/* Dot */}
+                      <div
+                        className={`
+                          absolute left-1/2 top-2.5 h-2 w-2 -translate-x-1/2 rounded-full
+                          ${role
+                            ? `${colors?.bg?.replace("/10", "")} ring-2 ring-white`
+                            : "bg-border"
+                          }
+                        `}
+                      />
+                    </div>
+
+                    {/* Sentence Text */}
                     <div
                       className={`
-                        absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2
-                        ${role ? colors?.bg?.replace("/10", "/40") || "bg-muted" : "bg-border/50"}
-                      `}
-                    />
-                    {/* Dot */}
-                    <div
-                      className={`
-                        absolute left-1/2 top-2.5 h-2 w-2 -translate-x-1/2 rounded-full
+                        flex-1 py-2 pl-3 pr-2 rounded-lg transition-colors
                         ${role
-                          ? `${colors?.bg?.replace("/10", "")} ring-2 ring-white`
-                          : "bg-border"
+                          ? `${colors?.bg} border-l-2 ${colors?.border?.replace("/30", "")}`
+                          : "border-l-2 border-transparent"
                         }
                       `}
-                    />
+                    >
+                      <p className="text-[15px] leading-relaxed text-foreground/90">
+                        {sentence}
+                      </p>
+                    </div>
                   </div>
-
-                  {/* Sentence Text */}
-                  <div
-                    className={`
-                      flex-1 py-2 pl-3 pr-2 rounded-lg transition-colors
-                      ${role
-                        ? `${colors?.bg} border-l-2 ${colors?.border?.replace("/30", "")}`
-                        : "border-l-2 border-transparent"
-                      }
-                    `}
-                  >
-                    <p className="text-[15px] leading-relaxed text-foreground/90">
-                      {sentence}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Missing Elements Warning or Success */}

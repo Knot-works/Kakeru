@@ -35,6 +35,7 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
   const [selectedTextContext, setSelectedTextContext] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isSendingRef = useRef(false);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -44,7 +45,8 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
   // Handle sending a message
   const handleSend = useCallback(async () => {
     const trimmedInput = input.trim();
-    if (!trimmedInput || sending) return;
+    if (!trimmedInput || sending || isSendingRef.current) return;
+    isSendingRef.current = true;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -123,6 +125,7 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
       // Remove the user message on error
       setMessages((prev) => prev.slice(0, -1));
     } finally {
+      isSendingRef.current = false;
       setSending(false);
     }
   }, [input, sending, messages, writingContext, pendingContext, lang]);

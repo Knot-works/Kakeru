@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SelectionPopover } from "@/components/ui/selection-popover";
 import {
   MessageCircle,
   Sparkles,
@@ -12,6 +13,7 @@ interface SentenceFeedbackProps {
   userAnswer: string;
   improvements: Improvement[];
   onAskAbout?: (index: number, improvement: Improvement) => void;
+  onAskAboutSelection?: (selectedText: string) => void;
 }
 
 interface AnnotatedSegment {
@@ -199,6 +201,7 @@ export function SentenceFeedback({
   userAnswer,
   improvements,
   onAskAbout,
+  onAskAboutSelection,
 }: SentenceFeedbackProps) {
   const sentences = useMemo(
     () => parseIntoSentences(userAnswer, improvements),
@@ -226,18 +229,35 @@ export function SentenceFeedback({
 
       {/* User's text with inline corrections - sentence by sentence */}
       <div className="rounded-2xl border border-border/60 bg-card p-6">
-        <div className="space-y-4">
-          {sentences.map((sentence, sentenceIndex) => (
-            <p
-              key={sentenceIndex}
-              className="text-base leading-[2.4] tracking-wide text-foreground/90"
-            >
-              {sentence.segments.map((segment, segmentIndex) => (
-                <InlineCorrection key={segmentIndex} segment={segment} />
+        {onAskAboutSelection ? (
+          <SelectionPopover onAsk={onAskAboutSelection}>
+            <div className="space-y-4 select-text">
+              {sentences.map((sentence, sentenceIndex) => (
+                <p
+                  key={sentenceIndex}
+                  className="text-base leading-[2.4] tracking-wide text-foreground/90"
+                >
+                  {sentence.segments.map((segment, segmentIndex) => (
+                    <InlineCorrection key={segmentIndex} segment={segment} />
+                  ))}
+                </p>
               ))}
-            </p>
-          ))}
-        </div>
+            </div>
+          </SelectionPopover>
+        ) : (
+          <div className="space-y-4">
+            {sentences.map((sentence, sentenceIndex) => (
+              <p
+                key={sentenceIndex}
+                className="text-base leading-[2.4] tracking-wide text-foreground/90"
+              >
+                {sentence.segments.map((segment, segmentIndex) => (
+                  <InlineCorrection key={segmentIndex} segment={segment} />
+                ))}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Detailed corrections list - always visible */}

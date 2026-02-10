@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { callLookupWord, isRateLimitError, getRateLimitMessage, type LookupResult } from "@/lib/functions";
 import { saveVocab, deleteVocab } from "@/lib/firestore";
@@ -20,9 +20,11 @@ import type { VocabType } from "@/types";
 
 interface DictionaryPanelProps {
   onClose?: () => void;
+  /** External search trigger - when this changes, search will be triggered */
+  searchTrigger?: { word: string; timestamp: number };
 }
 
-export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
+export function DictionaryPanel({ onClose, searchTrigger }: DictionaryPanelProps) {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LookupResult[]>([]);
@@ -31,9 +33,12 @@ export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
   const [savingTerm, setSavingTerm] = useState<string | null>(null);
   const [removingTerm, setRemovingTerm] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isSearchingRef = useRef(false);
+  const lastSearchTriggerRef = useRef<number>(0);
 
   const handleSearch = useCallback(async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || isSearchingRef.current) return;
+    isSearchingRef.current = true;
     setSearching(true);
     setResults([]);
     try {
@@ -50,9 +55,56 @@ export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
         toast.error("検索に失敗しました");
       }
     } finally {
+      isSearchingRef.current = false;
       setSearching(false);
     }
   }, [query]);
+
+  // Handle external search trigger with cooldown to prevent rapid API calls
+  useEffect(() => {
+    const MIN_SEARCH_INTERVAL = 1000; // 1 second cooldown
+    const now = Date.now();
+
+    if (
+      searchTrigger &&
+      searchTrigger.timestamp > lastSearchTriggerRef.current
+    ) {
+      // Check cooldown - prevent searches within 1 second of last search
+      const timeSinceLastSearch = now - lastSearchTriggerRef.current;
+      if (timeSinceLastSearch < MIN_SEARCH_INTERVAL && lastSearchTriggerRef.current > 0) {
+        // Update query but don't search (cooldown active)
+        setQuery(searchTrigger.word);
+        return;
+      }
+
+      lastSearchTriggerRef.current = now;
+      setQuery(searchTrigger.word);
+      // Trigger search after query is set
+      setTimeout(async () => {
+        if (!searchTrigger.word.trim() || isSearchingRef.current) return;
+        isSearchingRef.current = true;
+        setSearching(true);
+        setResults([]);
+        try {
+          const response = await callLookupWord(searchTrigger.word.trim());
+          setResults(response.results || []);
+          if (!response.results?.length) {
+            toast.info("検索結果が見つかりませんでした");
+          }
+        } catch (err) {
+          console.error("Lookup error:", err);
+          if (isRateLimitError(err)) {
+            toast.error(getRateLimitMessage(err), { duration: 8000 });
+          } else {
+            toast.error("検索に失敗しました");
+          }
+        } finally {
+          isSearchingRef.current = false;
+          setSearching(false);
+        }
+      }, 50);
+    }
+  }, [searchTrigger]);
 
   const handleAddToVocab = async (result: LookupResult) => {
     if (!user) return;
@@ -205,7 +257,7 @@ export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
                 </div>
                 <Badge
                   variant="secondary"
-                  className="mt-1 text-[10px] font-normal"
+                  className="mt-1.5 text-xs font-normal"
                 >
                   {result.partOfSpeech}
                 </Badge>
@@ -243,11 +295,11 @@ export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
 
             {/* Examples */}
             {result.examples?.length > 0 && (
-              <div className="mt-3 space-y-1.5">
+              <div className="mt-3 space-y-2">
                 {result.examples.map((ex, j) => (
                   <p
                     key={j}
-                    className="rounded-md bg-muted/40 px-3 py-2 text-xs leading-relaxed text-foreground/70"
+                    className="rounded-md bg-muted/40 px-3 py-2.5 text-sm leading-relaxed text-foreground/70"
                   >
                     {ex}
                   </p>
@@ -257,17 +309,22 @@ export function DictionaryPanel({ onClose }: DictionaryPanelProps) {
 
             {/* Related Expressions */}
             {result.related?.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-3">
+                <span className="mb-1.5 block text-xs font-medium text-muted-foreground/70">
+                  関連語・類義語
+                </span>
+                <div className="flex flex-wrap gap-2">
                 {result.related.map((rel) => (
                   <button
                     key={rel}
                     onClick={() => handleRelatedClick(rel)}
-                    className="inline-flex items-center gap-0.5 rounded-full border border-border/50 bg-card px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
                   >
                     {rel}
-                    <ChevronRight className="h-2.5 w-2.5" />
+                    <ChevronRight className="h-3 w-3" />
                   </button>
                 ))}
+                </div>
               </div>
             )}
           </div>
