@@ -246,7 +246,6 @@ export interface MistakeEntry {
   sourceWritingId: string;
   sourcePrompt: string;
   createdAt: Date;
-  isArchived: boolean;
 }
 
 // Period filter type
@@ -260,7 +259,6 @@ export interface VocabularyItem {
 
 export interface Writing {
   id: string;
-  userId: string;
   mode: WritingMode;
   prompt: string;
   promptHint?: string;
@@ -274,12 +272,10 @@ export interface Writing {
 
 export interface VocabEntry {
   id: string;
-  userId: string;
   type: VocabType;
   term: string;
   meaning: string;
   example: string;
-  tags: string[];
   source?: string;
   reviewCount: number;
   lastReviewedAt?: Date;
@@ -328,12 +324,6 @@ export const MODE_LABELS: Record<WritingMode, string> = {
   daily: "日常",
   social: "社会問題",
 };
-
-export interface DailyUsage {
-  gradeWriting: number;
-  generatePrompt: number;
-  lookupWord: number;
-}
 
 // Token-based usage tracking (monthly)
 export interface TokenUsage {

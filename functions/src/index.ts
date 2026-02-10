@@ -16,18 +16,18 @@ const db = getFirestore();
 interface UserProfileData {
   goal: string;
   level: string;
-  toeicScore?: number;
+  toeicScore?: number | null;
   interests: string[];
-  customInterests?: string[];  // 自由入力の興味（バンド名、作品名など）
+  customInterests?: string[] | null;  // 自由入力の興味（バンド名、作品名など）
   targetExpressions: string[];
   explanationLang: "ja" | "en";
-  userType?: string;
-  schoolType?: string;
-  grade?: number;
-  clubActivity?: string;
-  major?: string;
-  occupation?: string;
-  personalContext?: string;
+  userType?: string | null;
+  schoolType?: string | null;
+  grade?: number | null;
+  clubActivity?: string | null;
+  major?: string | null;
+  occupation?: string | null;
+  personalContext?: string | null;
 }
 
 interface PromptRequest {
@@ -64,40 +64,42 @@ const VALID_USER_TYPES = ["student", "working"] as const;
 const VALID_SCHOOL_TYPES = ["junior_high", "high_school", "university", "graduate"] as const;
 
 // User profile schema
+// Note: Using .nullish() to accept both null and undefined from frontend/Firestore
 const UserProfileSchema = z.object({
   goal: z.enum(VALID_GOALS),
   level: z.enum(VALID_LEVELS),
-  toeicScore: z.number().int().min(0).max(990).optional(),
+  toeicScore: z.number().int().min(0).max(990).nullish(),
   interests: z.array(z.string().max(100)).max(20),
-  customInterests: z.array(z.string().max(100)).max(10).optional(),
+  customInterests: z.array(z.string().max(100)).max(10).nullish(),
   targetExpressions: z.array(z.string().max(200)).max(10),
   explanationLang: z.enum(VALID_LANGS),
-  userType: z.enum(VALID_USER_TYPES).optional(),
-  schoolType: z.enum(VALID_SCHOOL_TYPES).optional(),
-  grade: z.number().int().min(1).max(6).optional(),
-  clubActivity: z.string().max(100).optional(),
-  major: z.string().max(100).optional(),
-  occupation: z.string().max(100).optional(),
-  personalContext: z.string().max(200).optional(),
+  userType: z.enum(VALID_USER_TYPES).nullish(),
+  schoolType: z.enum(VALID_SCHOOL_TYPES).nullish(),
+  grade: z.number().int().min(1).max(6).nullish(),
+  clubActivity: z.string().max(100).nullish(),
+  major: z.string().max(100).nullish(),
+  occupation: z.string().max(100).nullish(),
+  personalContext: z.string().max(200).nullish(),
 });
 
 // Request schemas
+// Note: Using .nullish() to accept both null and undefined from frontend
 const PromptRequestSchema = z.object({
   profile: UserProfileSchema,
   mode: z.enum(VALID_MODES),
-  customInput: z.string().max(500).optional(),
+  customInput: z.string().max(500).nullish(),
 });
 
 const GradeRequestSchema = z.object({
   profile: UserProfileSchema,
   prompt: z.string().min(1).max(1000),
   userAnswer: z.string().min(1).max(5000),
-  lang: z.enum(VALID_LANGS).optional(),
+  lang: z.enum(VALID_LANGS).nullish(),
 });
 
 const LookupRequestSchema = z.object({
   query: z.string().min(1).max(100),
-  lang: z.enum(VALID_LANGS).optional(),
+  lang: z.enum(VALID_LANGS).nullish(),
 });
 
 const OcrRequestSchema = z.object({
@@ -124,14 +126,14 @@ const AskFollowUpRequestSchema = z.object({
   conversationHistory: z.array(z.object({
     role: z.enum(["user", "assistant"]),
     content: z.string().max(2000),
-  })).max(10).optional(),
+  })).max(10).nullish(),
   improvementContext: z.object({
     index: z.number().int().min(0).max(20),
     original: z.string().max(500),
     suggested: z.string().max(500),
     explanation: z.string().max(1000),
-  }).optional(),
-  lang: z.enum(VALID_LANGS).optional(),
+  }).nullish(),
+  lang: z.enum(VALID_LANGS).nullish(),
 });
 
 // Validation helper - throws HttpsError on failure
@@ -401,7 +403,7 @@ function buildPersonaDescription(profile: UserProfileData): string {
 function buildPromptSystemMessage(
   profile: UserProfileData,
   mode: string,
-  customInput?: string
+  customInput?: string | null
 ): string {
   const levelDesc = getLevelDesc(profile.level);
   const persona = buildPersonaDescription(profile);
@@ -709,7 +711,7 @@ ${userAnswer}
   ],
   "vocabularyItems": [
     {
-      "term": "学ぶべき単語・表現",
+      "term": "英単語または英語表現（必ず英語で）",
       "meaning": "その意味",
       "type": "word|expression"
     }
@@ -778,7 +780,9 @@ contentの場合:
 - other_content: その他の内容
 
 【vocabularyItemsについて】
-ユーザーが使えていなかった、または間違えていた重要な単語・表現を抽出してください。
+このお題に関連して学ぶべき英単語・英語表現を抽出してください。
+
+【重要】termは必ず英語で記載してください（日本語は不可）
 
 抽出すべきもの（優先度順）：
 1. 動詞パターン（例: be eager to, lead to, result in）
@@ -794,6 +798,7 @@ contentの場合:
 
 以下は含めないでください：
 - 基本的な冠詞・前置詞・接続詞（a, the, on, in, but, so）
+- 日本語のテキスト（お題が日本語でもtermは英語のみ）
 - ユーザーが書いた間違った表現そのもの
 
 ${vocabInstruction}
@@ -1698,9 +1703,17 @@ export const deleteAccount = onCall(
       const writingsRef = db.collection(`users/${uid}/writings`);
       const writingsDeleted = await deleteCollection(writingsRef);
 
-      // Delete user's vocab entries
-      const vocabRef = db.collection(`users/${uid}/vocab`);
-      const vocabDeleted = await deleteCollection(vocabRef);
+      // Delete user's vocabulary entries (correct collection name)
+      const vocabularyRef = db.collection(`users/${uid}/vocabulary`);
+      const vocabularyDeleted = await deleteCollection(vocabularyRef);
+
+      // Delete user's mistakes (間違いノート)
+      const mistakesRef = db.collection(`users/${uid}/mistakes`);
+      const mistakesDeleted = await deleteCollection(mistakesRef);
+
+      // Delete user's meta data (stats etc)
+      const metaRef = db.collection(`users/${uid}/meta`);
+      const metaDeleted = await deleteCollection(metaRef);
 
       // Delete user profile document
       await db.doc(`users/${uid}`).delete();
@@ -1708,13 +1721,15 @@ export const deleteAccount = onCall(
       // Delete Firebase Auth user
       await auth.deleteUser(uid);
 
-      console.log(`Account deleted: ${uid}, writings: ${writingsDeleted}, vocab: ${vocabDeleted}`);
+      console.log(`Account deleted: ${uid}, writings: ${writingsDeleted}, vocabulary: ${vocabularyDeleted}, mistakes: ${mistakesDeleted}, meta: ${metaDeleted}`);
 
       return {
         success: true,
         deleted: {
           writings: writingsDeleted,
-          vocab: vocabDeleted,
+          vocabulary: vocabularyDeleted,
+          mistakes: mistakesDeleted,
+          meta: metaDeleted,
         },
       };
     } catch (error: unknown) {

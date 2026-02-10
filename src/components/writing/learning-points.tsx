@@ -78,7 +78,6 @@ export function LearningPoints({
           term: item.term,
           meaning: item.meaning,
           example: "",
-          tags: ["添削"],
           source: sourcePrompt,
         });
         successIds.push(item.id);

@@ -120,7 +120,6 @@ export function DictionaryPanel({ onClose, searchTrigger }: DictionaryPanelProps
         term: result.term,
         meaning: result.meaning,
         example: result.examples[0] || "",
-        tags: [result.partOfSpeech],
         source: "dictionary",
       });
 

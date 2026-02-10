@@ -20,7 +20,6 @@ import type {
   VocabEntry,
   UserStats,
   WritingMode,
-  DailyUsage,
   MistakeEntry,
   Improvement,
   AnalysisPeriod,
@@ -62,11 +61,10 @@ export async function updateUserProfile(
 
 export async function saveWriting(
   userId: string,
-  writing: Omit<Writing, "id" | "userId" | "createdAt">
+  writing: Omit<Writing, "id" | "createdAt">
 ): Promise<string> {
   const ref = await addDoc(collection(db, "users", userId, "writings"), {
     ...writing,
-    userId,
     createdAt: Timestamp.now(),
   });
   return ref.id;
@@ -134,11 +132,10 @@ export async function getWritingsByMode(
 
 export async function saveVocab(
   userId: string,
-  entry: Omit<VocabEntry, "id" | "userId" | "createdAt" | "reviewCount">
+  entry: Omit<VocabEntry, "id" | "createdAt" | "reviewCount">
 ): Promise<string> {
   const ref = await addDoc(collection(db, "users", userId, "vocabulary"), {
     ...entry,
-    userId,
     reviewCount: 0,
     createdAt: Timestamp.now(),
   });
@@ -190,24 +187,6 @@ export async function getDailyPromptsFromCache(): Promise<DailyPrompts | null> {
   } as DailyPrompts;
 }
 
-// ============ Daily Usage ============
-
-export async function getUserDailyUsage(
-  userId: string
-): Promise<DailyUsage> {
-  const dateStr = getTodayJST();
-  const snap = await getDoc(doc(db, "users", userId, "dailyUsage", dateStr));
-  if (!snap.exists()) {
-    return { gradeWriting: 0, generatePrompt: 0, lookupWord: 0 };
-  }
-  const data = snap.data();
-  return {
-    gradeWriting: data.gradeWriting || 0,
-    generatePrompt: data.generatePrompt || 0,
-    lookupWord: data.lookupWord || 0,
-  };
-}
-
 // ============ Stats ============
 
 export async function getUserStats(
@@ -249,7 +228,6 @@ export async function saveMistakes(
       sourceWritingId: writingId,
       sourcePrompt: prompt,
       createdAt: now,
-      isArchived: false,
     });
   }
 }
@@ -275,13 +253,12 @@ export async function getMistakes(
   options: {
     period?: AnalysisPeriod;
     type?: string;
-    includeArchived?: boolean;
     limitCount?: number;
   } = {}
 ): Promise<MistakeEntry[]> {
-  const { period = "all", type, includeArchived = false, limitCount = 200 } = options;
+  const { period = "all", type, limitCount = 200 } = options;
 
-  let q = query(
+  const q = query(
     collection(db, "users", userId, "mistakes"),
     orderBy("createdAt", "desc"),
     limit(limitCount)
@@ -308,28 +285,12 @@ export async function getMistakes(
     mistakes = mistakes.filter((m) => m.type === type);
   }
 
-  // Filter archived
-  if (!includeArchived) {
-    mistakes = mistakes.filter((m) => !m.isArchived);
-  }
-
   return mistakes;
 }
 
-export async function archiveMistake(
+export async function deleteMistake(
   userId: string,
   mistakeId: string
 ): Promise<void> {
-  await updateDoc(doc(db, "users", userId, "mistakes", mistakeId), {
-    isArchived: true,
-  });
-}
-
-export async function unarchiveMistake(
-  userId: string,
-  mistakeId: string
-): Promise<void> {
-  await updateDoc(doc(db, "users", userId, "mistakes", mistakeId), {
-    isArchived: false,
-  });
+  await deleteDoc(doc(db, "users", userId, "mistakes", mistakeId));
 }

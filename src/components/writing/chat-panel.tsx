@@ -34,12 +34,15 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
   } | null>(null);
   const [selectedTextContext, setSelectedTextContext] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSendingRef = useRef(false);
 
-  // Scroll to bottom when new messages arrive
+  // Scroll to bottom when new messages arrive (within the messages container only)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   // Handle sending a message
@@ -186,7 +189,7 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center gap-4 px-4 py-8 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">

@@ -103,17 +103,14 @@ export default function VocabularyPage() {
         term: vocabTerm,
         meaning: vocabMeaning,
         example: vocabExample,
-        tags: [],
       });
       setEntries((prev) => [
         {
           id,
-          userId: user.uid,
           type: vocabType,
           term: vocabTerm,
           meaning: vocabMeaning,
           example: vocabExample,
-          tags: [],
           reviewCount: 0,
           createdAt: new Date(),
         },
@@ -123,12 +120,10 @@ export default function VocabularyPage() {
       // Fallback to localStorage
       const newEntry = {
         id: `local-${Date.now()}`,
-        userId: user.uid,
         type: vocabType,
         term: vocabTerm,
         meaning: vocabMeaning,
         example: vocabExample,
-        tags: [],
         reviewCount: 0,
         createdAt: new Date().toISOString(),
       };

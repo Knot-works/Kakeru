@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
-import { getMistakes, archiveMistake, unarchiveMistake } from "@/lib/firestore";
+import { getMistakes, deleteMistake } from "@/lib/firestore";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   AlertCircle,
   Check,
   FileText,
-  Archive,
-  RotateCcw,
   PenLine,
   BarChart3,
 } from "lucide-react";
@@ -49,7 +48,6 @@ export default function MistakesPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -57,10 +55,7 @@ export default function MistakesPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const data = await getMistakes(user.uid, {
-          period,
-          includeArchived: showArchived,
-        });
+        const data = await getMistakes(user.uid, { period });
         setMistakes(data);
       } catch (err) {
         console.error("Failed to load mistakes:", err);
@@ -70,57 +65,34 @@ export default function MistakesPage() {
     };
 
     load();
-  }, [user, period, showArchived]);
+  }, [user, period]);
 
-  const handleArchive = async (mistakeId: string) => {
+  const handleDelete = async (mistakeId: string) => {
     if (!user) return;
     try {
-      await archiveMistake(user.uid, mistakeId);
-      setMistakes((prev) =>
-        prev.map((m) =>
-          m.id === mistakeId ? { ...m, isArchived: true } : m
-        )
-      );
+      await deleteMistake(user.uid, mistakeId);
+      setMistakes((prev) => prev.filter((m) => m.id !== mistakeId));
+      toast.success("克服しました！");
     } catch (err) {
-      console.error("Failed to archive mistake:", err);
-    }
-  };
-
-  const handleUnarchive = async (mistakeId: string) => {
-    if (!user) return;
-    try {
-      await unarchiveMistake(user.uid, mistakeId);
-      setMistakes((prev) =>
-        prev.map((m) =>
-          m.id === mistakeId ? { ...m, isArchived: false } : m
-        )
-      );
-    } catch (err) {
-      console.error("Failed to unarchive mistake:", err);
+      console.error("Failed to delete mistake:", err);
+      toast.error("削除に失敗しました");
     }
   };
 
   // Filter by type
   const filtered = useMemo(() => {
-    let result = mistakes;
-    if (typeFilter !== "all") {
-      result = result.filter((m) => m.type === typeFilter);
-    }
-    if (!showArchived) {
-      result = result.filter((m) => !m.isArchived);
-    }
-    return result;
-  }, [mistakes, typeFilter, showArchived]);
+    if (typeFilter === "all") return mistakes;
+    return mistakes.filter((m) => m.type === typeFilter);
+  }, [mistakes, typeFilter]);
 
   // Stats by type
   const stats = useMemo(() => {
-    const activeMistakes = mistakes.filter((m) => !m.isArchived);
     return {
-      grammar: activeMistakes.filter((m) => m.type === "grammar").length,
-      vocabulary: activeMistakes.filter((m) => m.type === "vocabulary").length,
-      structure: activeMistakes.filter((m) => m.type === "structure").length,
-      content: activeMistakes.filter((m) => m.type === "content").length,
-      total: activeMistakes.length,
+      grammar: mistakes.filter((m) => m.type === "grammar").length,
+      vocabulary: mistakes.filter((m) => m.type === "vocabulary").length,
+      structure: mistakes.filter((m) => m.type === "structure").length,
+      content: mistakes.filter((m) => m.type === "content").length,
+      total: mistakes.length,
     };
   }, [mistakes]);
 
@@ -248,15 +220,6 @@ export default function MistakesPage() {
           </TabsList>
         </Tabs>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={() => setShowArchived(!showArchived)}
-        >
-          <Archive className="h-3.5 w-3.5" />
-          {showArchived ? "アーカイブ非表示" : "アーカイブ表示"}
-        </Button>
       </div>
 
       {/* Mistakes List */}
@@ -289,12 +252,7 @@ export default function MistakesPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((mistake) => (
-            <Card
-              key={mistake.id}
-              className={`transition-all ${
-                mistake.isArchived ? "opacity-50" : ""
-              }`}
-            >
+            <Card key={mistake.id} className="transition-all">
               <CardContent className="p-4">
                 {/* Header: Type + SubType + Action */}
                 <div className="flex items-center justify-between mb-3">
@@ -311,27 +269,15 @@ export default function MistakesPage() {
                       </span>
                     )}
                   </div>
-                  {mistake.isArchived ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 text-xs text-muted-foreground"
-                      onClick={() => handleUnarchive(mistake.id)}
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      復元
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 text-xs text-primary hover:text-primary hover:bg-primary/5"
-                      onClick={() => handleArchive(mistake.id)}
-                    >
-                      <Check className="h-3 w-3" />
-                      克服した
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-primary hover:text-primary hover:bg-primary/5"
+                    onClick={() => handleDelete(mistake.id)}
+                  >
+                    <Check className="h-3 w-3" />
+                    克服した
+                  </Button>
                 </div>
 
                 {/* Correction: Original → Suggested */}

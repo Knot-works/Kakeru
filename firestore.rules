@@ -20,14 +20,12 @@ service cloud.firestore {
                     && (!("tokenUsage" in request.resource.data) ||
                         request.resource.data.tokenUsage == resource.data.tokenUsage);
 
-      // Daily usage tracking: read-only for clients (written by Cloud Functions)
-      match /dailyUsage/{date} {
-        allow read: if isOwner(userId);
-      }
-
-      // Writings
+      // Writings: create-only (immutable after submission)
+      // Prevents feedback/rank manipulation
       match /writings/{docId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+        // No update or delete allowed
       }
 
       // Vocabulary
@@ -40,9 +38,13 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
-      // Mistakes (間違いノート)
+      // Mistakes (間違いノート): create + delete only
+      // Delete allowed for "克服した" feature
       match /mistakes/{docId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId);
+        allow delete: if isOwner(userId);
+        // No update allowed (delete instead of archive)
       }
     }
 
