@@ -9,12 +9,16 @@ service cloud.firestore {
 
     // Users: each user can read/write their own data
     match /users/{userId} {
-      // Profile: readable by owner, writable but plan field cannot be changed by client
+      // Profile: readable by owner, writable but protected fields cannot be changed by client
+      // Protected fields: plan (billing), createdAt (immutable), tokenUsage (managed by Cloud Functions)
       allow read: if isOwner(userId);
       allow create: if isOwner(userId)
                     && request.resource.data.plan == "free";
       allow update: if isOwner(userId)
-                    && request.resource.data.plan == resource.data.plan;
+                    && request.resource.data.plan == resource.data.plan
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && (!("tokenUsage" in request.resource.data) ||
+                        request.resource.data.tokenUsage == resource.data.tokenUsage);
 
       // Daily usage tracking: read-only for clients (written by Cloud Functions)
       match /dailyUsage/{date} {
