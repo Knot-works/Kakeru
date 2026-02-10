@@ -16,6 +16,7 @@ import {
   Sparkles,
   Loader2,
   UserCircle,
+  Eye,
 } from "lucide-react";
 import { type Writing, type UserStats, type WritingMode, MODE_LABELS } from "@/types";
 
@@ -236,12 +237,20 @@ export default function DashboardPage() {
                       {w.createdAt.toLocaleDateString("ja-JP")}
                     </p>
                   </div>
-                  <Link to={`/write/result/${w.id}`} className="gap-1.5">
-                    <Button variant="ghost" size="sm" className="gap-1.5">
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      再挑戦
-                    </Button>
-                  </Link>
+                  <div className="flex gap-1">
+                    <Link to={`/write/result/${w.id}`}>
+                      <Button variant="ghost" size="sm" className="gap-1.5">
+                        <Eye className="h-3.5 w-3.5" />
+                        結果
+                      </Button>
+                    </Link>
+                    <Link to={`/write/${w.mode}`}>
+                      <Button variant="ghost" size="sm" className="gap-1.5">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        再挑戦
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}

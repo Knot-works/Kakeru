@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
 import { getVocabulary, deleteVocab, saveVocab } from "@/lib/firestore";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,11 +21,17 @@ import {
   Plus,
   Trash2,
   X,
+  Crown,
+  Info,
 } from "lucide-react";
 import type { VocabEntry, VocabType } from "@/types";
 
+// 無料プランの単語帳上限
+const FREE_PLAN_VOCAB_LIMIT = 50;
+
 export default function VocabularyPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isFreePlan = profile?.plan !== "pro";
   const [entries, setEntries] = useState<VocabEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +53,7 @@ export default function VocabularyPage() {
         const data = await getVocabulary(user.uid);
         setEntries(data);
       } catch {
-        const stored = localStorage.getItem("kakeru-vocab");
+        const stored = localStorage.getItem("writto-vocab");
         if (stored) {
           const parsed = JSON.parse(stored);
           setEntries(
@@ -71,18 +78,24 @@ export default function VocabularyPage() {
     } catch {
       // Fallback: remove from localStorage
       const stored = JSON.parse(
-        localStorage.getItem("kakeru-vocab") || "[]"
+        localStorage.getItem("writto-vocab") || "[]"
       );
       const filtered = stored.filter(
         (e: { id: string }) => e.id !== entryId
       );
-      localStorage.setItem("kakeru-vocab", JSON.stringify(filtered));
+      localStorage.setItem("writto-vocab", JSON.stringify(filtered));
     }
     setEntries((prev) => prev.filter((e) => e.id !== entryId));
   };
 
+  // 無料プランの上限チェック
+  const isAtLimit = isFreePlan && entries.length >= FREE_PLAN_VOCAB_LIMIT;
+  const remainingSlots = isFreePlan ? Math.max(0, FREE_PLAN_VOCAB_LIMIT - entries.length) : Infinity;
+
   const handleAdd = async () => {
     if (!user || !vocabTerm.trim()) return;
+    // 無料プランで上限に達している場合は追加不可
+    if (isAtLimit) return;
     setSaving(true);
     try {
       const id = await saveVocab(user.uid, {
@@ -120,10 +133,10 @@ export default function VocabularyPage() {
         createdAt: new Date().toISOString(),
       };
       const stored = JSON.parse(
-        localStorage.getItem("kakeru-vocab") || "[]"
+        localStorage.getItem("writto-vocab") || "[]"
       );
       stored.unshift(newEntry);
-      localStorage.setItem("kakeru-vocab", JSON.stringify(stored));
+      localStorage.setItem("writto-vocab", JSON.stringify(stored));
       setEntries((prev) => [
         { ...newEntry, createdAt: new Date() } as VocabEntry,
         ...prev,
@@ -166,13 +179,50 @@ export default function VocabularyPage() {
           <h1 className="font-serif text-3xl">単語帳</h1>
           <p className="text-muted-foreground">
             学習した単語や表現をまとめて管理
+            {isFreePlan && (
+              <span className="ml-2 text-sm">
+                （{entries.length}/{FREE_PLAN_VOCAB_LIMIT}件）
+              </span>
+            )}
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button
+          className="gap-2"
+          onClick={() => setDialogOpen(true)}
+          disabled={isAtLimit}
+        >
           <Plus className="h-4 w-4" />
           追加
         </Button>
       </div>
+
+      {/* Free Plan Limitation Banner */}
+      {isFreePlan && (
+        <Card className={`${isAtLimit ? "border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20" : "border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20"}`}>
+          <CardContent className="flex items-center gap-3 p-4">
+            <Info className={`h-5 w-5 shrink-0 ${isAtLimit ? "text-red-600 dark:text-red-500" : "text-amber-600 dark:text-amber-500"}`} />
+            <div className="flex-1">
+              <p className={`text-sm ${isAtLimit ? "text-red-800 dark:text-red-200" : "text-amber-800 dark:text-amber-200"}`}>
+                {isAtLimit ? (
+                  <>無料プランの上限（{FREE_PLAN_VOCAB_LIMIT}件）に達しました</>
+                ) : (
+                  <>無料プランでは{FREE_PLAN_VOCAB_LIMIT}件まで登録できます（残り{remainingSlots}件）</>
+                )}
+              </p>
+            </div>
+            <Link to="/pricing">
+              <Button
+                size="sm"
+                variant="outline"
+                className={`gap-1.5 ${isAtLimit ? "border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30" : "border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30"}`}
+              >
+                <Crown className="h-3.5 w-3.5" />
+                Proで無制限に
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

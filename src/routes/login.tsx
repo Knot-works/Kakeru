@@ -35,7 +35,7 @@ export default function LoginPage() {
             <PenLine className="h-6 w-6 text-primary-foreground" />
           </div>
           <span className="font-serif text-2xl text-primary-foreground">
-            Kakeru
+            Writto
           </span>
         </div>
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-sm text-primary-foreground/40">
-          &copy; 2026 Kakeru. All rights reserved.
+          &copy; 2026 Writto. All rights reserved.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
               <PenLine className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="font-serif text-3xl">Kakeru</h1>
+            <h1 className="font-serif text-3xl">Writto</h1>
             <p className="mt-2 text-muted-foreground">
               英語ライティング学習
             </p>
