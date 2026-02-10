@@ -11,30 +11,30 @@ import {
   Crown,
   ArrowLeft,
   Zap,
-  BookOpen,
-  BarChart3,
   Infinity,
   X,
   PenLine,
+  ScanLine,
+  History,
+  NotebookText,
+  Rocket,
 } from "lucide-react";
 
+// 順番を揃えて対比しやすく（アイコンも対応）
 const FREE_FEATURES = [
-  { text: "月間10,000トークン", included: true },
-  { text: "添削 約3回/月（体験版）", included: true },
-  { text: "標準モデルで添削", included: true },
-  { text: "学習履歴 7日間", included: true },
-  { text: "単語帳 50件まで", included: true },
-  { text: "詳細な文法解析", included: false },
-  { text: "表現の代替案提示", included: false },
+  { icon: Infinity, text: "20,000トークン（お試し）", included: true },
+  { icon: Zap, text: "標準モデルで添削", included: true },
+  { icon: History, text: "学習履歴 7日間", included: true },
+  { icon: NotebookText, text: "単語帳 50件まで", included: true },
+  { icon: ScanLine, text: "手書き文字認識（OCR）", included: false },
 ];
 
 const PRO_FEATURES = [
   { icon: Infinity, text: "月間2,000,000トークン", highlight: true },
   { icon: Zap, text: "高精度モデル（GPT-4o）で添削", highlight: true },
-  { icon: BookOpen, text: "学習履歴 無制限" },
-  { icon: BookOpen, text: "単語帳 無制限" },
-  { icon: BarChart3, text: "詳細な文法解析", highlight: true },
-  { icon: Sparkles, text: "表現の代替案を提示", highlight: true },
+  { icon: History, text: "学習履歴 無制限" },
+  { icon: NotebookText, text: "単語帳 無制限" },
+  { icon: ScanLine, text: "手書き文字認識（OCR）", highlight: true },
 ];
 
 export default function PricingPage() {
@@ -45,8 +45,16 @@ export default function PricingPage() {
 
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
 
-  const monthlyPrice = 980;
-  const yearlyPrice = 9400;
+  // ローンチ価格（〜2026年5月末）
+  const isLaunchPeriod = new Date() < new Date("2026-06-01");
+  const launchMonthlyPrice = 980;
+  const launchYearlyPrice = 9400;
+  // 通常価格（2026年6月〜）
+  const regularMonthlyPrice = 1280;
+  const regularYearlyPrice = 9800;
+
+  const monthlyPrice = isLaunchPeriod ? launchMonthlyPrice : regularMonthlyPrice;
+  const yearlyPrice = isLaunchPeriod ? launchYearlyPrice : regularYearlyPrice;
   const yearlyMonthlyEquivalent = Math.floor(yearlyPrice / 12);
 
   const handleSelectPro = () => {
@@ -63,7 +71,7 @@ export default function PricingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium">Kakeru</span>
+            <span className="font-serif text-lg font-medium">Writto</span>
           </Link>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/" className="gap-1.5">
@@ -90,7 +98,7 @@ export default function PricingPage() {
               料金プラン
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              無料で始めて、必要に応じてアップグレード。
+              まずは無料でお試し。気に入ったらProへ。
               <br className="hidden sm:block" />
               あなたのペースで英語ライティング力を伸ばしましょう。
             </p>
@@ -100,6 +108,20 @@ export default function PricingPage() {
 
       {/* Content */}
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+        {/* Launch Pricing Banner */}
+        {isLaunchPeriod && (
+          <div className="mb-8 rounded-2xl border border-accent/30 bg-gradient-to-r from-accent/5 to-orange-500/5 p-4 text-center">
+            <div className="flex items-center justify-center gap-2 text-accent">
+              <Rocket className="h-5 w-5" />
+              <span className="font-medium">ローンチ記念価格</span>
+              <span className="text-xs text-accent/70">〜2026年5月末</span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              期間中に購入されたサブスクリプションに適用されます。期間終了後は通常価格での更新となります。
+            </p>
+          </div>
+        )}
+
         {/* Billing Toggle */}
         <div className="mb-10 flex justify-center">
           <div className="relative flex gap-1 rounded-xl bg-muted/60 p-1">
@@ -133,35 +155,44 @@ export default function PricingPage() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 items-stretch pt-4">
           {/* Free Plan */}
           <Card className={`relative flex flex-col transition-shadow hover:shadow-lg ${!isFreePlan ? "" : "ring-2 ring-primary/20"}`}>
             <CardContent className="flex flex-1 flex-col p-6 sm:p-8">
+              {/* タイトル部分 - Proと高さを揃える */}
               <div className="mb-6">
-                <h2 className="font-serif text-2xl">無料プラン</h2>
+                <div className="flex items-center gap-2 h-8">
+                  <h2 className="font-serif text-2xl">無料プラン</h2>
+                </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  まずは気軽に始めたい方へ
+                  まずは試してみたい方へ
                 </p>
               </div>
 
-              <div className="mb-8">
-                <span className="font-serif text-5xl font-medium">¥0</span>
-                <span className="ml-2 text-muted-foreground">/ 月</span>
+              {/* 価格部分 - 高さを揃える */}
+              <div className="mb-8 min-h-[76px]">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-serif text-5xl font-medium">¥0</span>
+                  <span className="text-muted-foreground">/ 月</span>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  クレジットカード不要
+                </p>
               </div>
 
               <ul className="mb-8 flex-1 space-y-3">
                 {FREE_FEATURES.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
-                    {feature.included ? (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                        <Check className="h-3 w-3" />
-                      </div>
-                    ) : (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted/50 text-muted-foreground/50">
-                        <X className="h-3 w-3" />
-                      </div>
-                    )}
-                    <span className={`text-sm ${!feature.included ? "text-muted-foreground/60" : ""}`}>
+                  <li key={idx} className="flex items-center gap-3 min-h-[28px]">
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                        feature.included
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-muted/50 text-muted-foreground/50"
+                      }`}
+                    >
+                      <feature.icon className="h-3 w-3" />
+                    </div>
+                    <span className={`text-sm ${!feature.included ? "text-muted-foreground/60 line-through" : ""}`}>
                       {feature.text}
                     </span>
                   </li>
@@ -187,9 +218,10 @@ export default function PricingPage() {
               </Badge>
             </div>
 
-            <CardContent className="flex flex-1 flex-col p-6 pt-10 sm:p-8 sm:pt-12">
+            <CardContent className="flex flex-1 flex-col p-6 sm:p-8">
+              {/* タイトル部分 - Freeと高さを揃える */}
               <div className="mb-6">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 h-8">
                   <Crown className="h-6 w-6 text-amber-500" />
                   <h2 className="font-serif text-2xl">Pro</h2>
                 </div>
@@ -198,7 +230,8 @@ export default function PricingPage() {
                 </p>
               </div>
 
-              <div className="mb-8">
+              {/* 価格部分 - 高さを揃える */}
+              <div className="mb-8 min-h-[76px]">
                 {billingCycle === "yearly" ? (
                   <>
                     <div className="flex items-baseline gap-2">
@@ -206,12 +239,19 @@ export default function PricingPage() {
                         ¥{yearlyMonthlyEquivalent.toLocaleString()}
                       </span>
                       <span className="text-muted-foreground">/ 月</span>
+                      {isLaunchPeriod && (
+                        <span className="text-lg text-muted-foreground/60 line-through">
+                          ¥{Math.floor(regularYearlyPrice / 12).toLocaleString()}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       ¥{yearlyPrice.toLocaleString()} / 年払い
-                      <span className="ml-2 text-accent line-through">
-                        ¥{(monthlyPrice * 12).toLocaleString()}
-                      </span>
+                      {isLaunchPeriod && (
+                        <span className="ml-2 text-muted-foreground/60 line-through">
+                          ¥{regularYearlyPrice.toLocaleString()}
+                        </span>
+                      )}
                     </p>
                   </>
                 ) : (
@@ -221,6 +261,11 @@ export default function PricingPage() {
                         ¥{monthlyPrice.toLocaleString()}
                       </span>
                       <span className="text-muted-foreground">/ 月</span>
+                      {isLaunchPeriod && (
+                        <span className="text-lg text-muted-foreground/60 line-through">
+                          ¥{regularMonthlyPrice.toLocaleString()}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
                       毎月の請求
@@ -231,9 +276,9 @@ export default function PricingPage() {
 
               <ul className="mb-8 flex-1 space-y-3">
                 {PRO_FEATURES.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
+                  <li key={idx} className="flex items-center gap-3 min-h-[28px]">
                     <div
-                      className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                         feature.highlight
                           ? "bg-primary/10 text-primary"
                           : "bg-muted text-muted-foreground"
@@ -334,10 +379,10 @@ export default function PricingPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
               <PenLine className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-sm font-medium">Kakeru</span>
+            <span className="font-serif text-base font-medium">Writto</span>
           </Link>
           <p className="text-xs text-muted-foreground">
-            &copy; 2026 Kakeru
+            &copy; 2026 Writto
           </p>
         </div>
       </footer>

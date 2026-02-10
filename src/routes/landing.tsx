@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Layers,
   Zap,
+  Coffee,
 } from "lucide-react";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { FlipWords } from "@/components/ui/flip-words";
@@ -72,7 +73,10 @@ export default function LandingPage() {
               <PenLine className="h-5 w-5" />
             </div>
             <span className="font-serif text-xl font-bold tracking-tight">
-              Kakeru
+              Writto
+            </span>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+              Beta
             </span>
           </div>
           <Link
@@ -97,7 +101,7 @@ export default function LandingPage() {
           </div>
 
           {/* Text Generate Effect for main headline */}
-          <h1 className="font-serif text-4xl leading-tight sm:text-5xl md:text-6xl">
+          <h1 className="font-serif text-[clamp(1.75rem,5vw,3.75rem)] leading-tight whitespace-nowrap">
             <TextGenerateEffect
               words="英語で「書ける」自分になる。"
               className="font-serif"
@@ -140,7 +144,7 @@ export default function LandingPage() {
       <section className="border-t border-border/50 bg-card/50">
         <div className="mx-auto max-w-6xl px-6 py-24">
           <div className="text-center">
-            <h2 className="font-serif text-3xl sm:text-4xl">Kakeruの特徴</h2>
+            <h2 className="font-serif text-3xl sm:text-4xl">Writtoの特徴</h2>
             <p className="mt-3 text-muted-foreground">
               英語ライティングに特化した学習体験
             </p>
@@ -226,9 +230,9 @@ export default function LandingPage() {
             今日から、英語で書く力を伸ばそう
           </h2>
           <p className="mt-4 text-muted-foreground">
-            無料プランで1日3回まで利用可能。
+            無料プランでまずはお試しください。
             <br />
-            まずは気軽にお試しください。
+            気に入ったらProプランへ。
           </p>
           <div className="mt-10 flex flex-col items-center gap-4">
             <Link
@@ -262,11 +266,20 @@ export default function LandingPage() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <PenLine className="h-4 w-4" />
                 </div>
-                <span className="font-serif font-medium">Kakeru</span>
+                <span className="font-serif font-medium">Writto</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 AIを活用した英語ライティング学習サービス
               </p>
+              <a
+                href="https://www.buymeacoffee.com/YOUR_USERNAME"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-amber-500/40 hover:bg-amber-500/10 hover:text-amber-600"
+              >
+                <Coffee className="h-3.5 w-3.5 text-amber-500" />
+                <span>開発者を応援する</span>
+              </a>
             </div>
 
             {/* Service Links */}
@@ -280,7 +293,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                    Kakeruについて
+                    Writtoについて
                   </Link>
                 </li>
               </ul>
@@ -329,7 +342,7 @@ export default function LandingPage() {
           {/* Copyright */}
           <div className="mt-10 pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; 2026 Kakeru. All rights reserved.
+              &copy; 2026 Writto. All rights reserved.
             </p>
             <p className="text-xs text-muted-foreground">
               Made with passion for language learners

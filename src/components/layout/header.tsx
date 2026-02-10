@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { useToken } from "@/contexts/token-context";
+import { useUpgradeModal } from "@/contexts/upgrade-modal-context";
 import { callTestSwitchPlan, callDeleteAccount } from "@/lib/functions";
 import { formatTokens, getUsagePercentage } from "@/lib/rate-limits";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,14 +24,14 @@ import {
   ChevronRight,
   Zap,
   BookOpen,
-  BarChart3,
   Infinity,
   FlaskConical,
   Coins,
   Trash2,
   Loader2,
   AlertTriangle,
-  AlertCircle,
+  Camera,
+  Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,11 +41,10 @@ const PLAN_LABELS = {
 };
 
 const PRO_FEATURES = [
-  { icon: Zap, text: "高精度モデル（GPT-4o）で添削", highlight: true },
   { icon: Infinity, text: "月間2,000,000トークン", highlight: true },
+  { icon: Zap, text: "高精度モデル（GPT-4o）で添削", highlight: true },
   { icon: BookOpen, text: "学習履歴・単語帳が無制限" },
-  { icon: BarChart3, text: "詳細な文法解析" },
-  { icon: Sparkles, text: "表現の代替案を提示" },
+  { icon: Camera, text: "手書き文字認識（OCR）", highlight: true },
 ];
 
 // Shared modal content class
@@ -53,13 +53,13 @@ const MODAL_CONTENT_CLASS = "fixed left-1/2 top-1/2 z-50 w-full max-w-xl -transl
 export function Header() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { tokenUsage, refresh: refreshTokenUsage } = useToken();
+  const { isOpen: upgradeModalOpen, open: openUpgradeModal, close: closeUpgradeModal } = useUpgradeModal();
   const location = useLocation();
   const navigate = useNavigate();
   const plan = profile?.plan || "free";
   const isFreePlan = plan === "free";
 
   const [userModalOpen, setUserModalOpen] = useState(false);
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
   const [priceAnimating, setPriceAnimating] = useState(false);
@@ -95,8 +95,16 @@ export function Header() {
     }
   };
 
-  const monthlyPrice = 980;
-  const yearlyPrice = 9400;
+  // ローンチ価格（〜2026年5月末）
+  const isLaunchPeriod = new Date() < new Date("2026-06-01");
+  const launchMonthlyPrice = 980;
+  const launchYearlyPrice = 9400;
+  // 通常価格（2026年6月〜）
+  const regularMonthlyPrice = 1280;
+  const regularYearlyPrice = 9800;
+
+  const monthlyPrice = isLaunchPeriod ? launchMonthlyPrice : regularMonthlyPrice;
+  const yearlyPrice = isLaunchPeriod ? launchYearlyPrice : regularYearlyPrice;
   const yearlyMonthlyEquivalent = Math.floor(yearlyPrice / 12);
 
   // Update indicator position
@@ -156,7 +164,7 @@ export function Header() {
       await refreshTokenUsage();
       toast.success(`プランを${newPlan === "pro" ? "Pro" : "無料"}に変更しました（テスト）`);
       if (newPlan === "pro") {
-        setUpgradeModalOpen(false);
+        closeUpgradeModal();
       }
     } catch (error) {
       console.error("Failed to update plan:", error);
@@ -175,7 +183,10 @@ export function Header() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform group-hover:scale-105">
               <PenLine className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-medium tracking-tight">Kakeru</span>
+            <span className="font-serif text-lg font-medium tracking-tight">Writto</span>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+              Beta
+            </span>
           </Link>
 
           {/* Navigation */}
@@ -204,7 +215,7 @@ export function Header() {
               isFreePlan ? (
                 <Button
                   size="sm"
-                  onClick={() => setUpgradeModalOpen(true)}
+                  onClick={openUpgradeModal}
                   className="hidden gap-1.5 rounded-full bg-gradient-to-r from-accent to-orange-500 text-white hover:from-accent/90 hover:to-orange-500/90 sm:flex btn-bounce"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
@@ -224,7 +235,11 @@ export function Header() {
             {/* User Menu */}
             {user && (
               <button
-                onClick={() => setUserModalOpen(true)}
+                onClick={() => {
+                  setUserModalOpen(true);
+                  // Refresh token usage when opening the modal
+                  refreshTokenUsage();
+                }}
                 className="flex items-center gap-2 rounded-full p-0.5 outline-none ring-offset-2 ring-offset-background transition-all hover:ring-2 hover:ring-primary/20 focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Avatar className="h-8 w-8 border-2 border-background shadow-sm">
@@ -283,7 +298,10 @@ export function Header() {
                       <span className="text-sm font-medium">トークン使用量</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {tokenUsage.daysUntilReset}日後リセット
+                      {tokenUsage.plan === "free"
+                        ? "無料枠"
+                        : `${tokenUsage.daysUntilReset}日後リセット`
+                      }
                     </span>
                   </div>
                   {/* Progress Bar */}
@@ -315,7 +333,7 @@ export function Header() {
                 <button
                   onClick={() => {
                     setUserModalOpen(false);
-                    setUpgradeModalOpen(true);
+                    openUpgradeModal();
                   }}
                   className="mb-4 block w-full rounded-2xl border border-border/60 bg-gradient-to-r from-accent/5 to-orange-500/5 p-4 text-left transition-all hover:border-accent/30 hover:from-accent/10 hover:to-orange-500/10"
                 >
@@ -411,7 +429,7 @@ export function Header() {
       </Dialog>
 
       {/* Upgrade Modal */}
-      <Dialog open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen}>
+      <Dialog open={upgradeModalOpen} onOpenChange={(open) => open ? openUpgradeModal() : closeUpgradeModal()}>
         <DialogPortal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <DialogPrimitive.Content className={MODAL_CONTENT_CLASS} aria-describedby={undefined}>
@@ -423,13 +441,27 @@ export function Header() {
               <DialogPrimitive.Title className="mt-4 font-serif text-2xl">
                 Proにアップグレード
               </DialogPrimitive.Title>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 より快適に英語ライティングを学習
               </p>
             </div>
 
             {/* Content */}
             <div className="px-8 pb-8">
+              {/* Launch Pricing Banner */}
+              {isLaunchPeriod && (
+                <div className="mb-6 rounded-xl border border-accent/30 bg-gradient-to-r from-accent/5 to-orange-500/5 p-3 text-center">
+                  <div className="flex items-center justify-center gap-2 text-accent text-sm">
+                    <Rocket className="h-4 w-4" />
+                    <span className="font-medium">ローンチ記念価格</span>
+                    <span className="text-xs text-accent/70">〜2026年5月末</span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    期間中のご購入分に適用。期間終了後は通常価格での更新となります。
+                  </p>
+                </div>
+              )}
+
               {/* Billing Toggle - Pill Style */}
               <div className="mb-6 flex justify-center">
                 <div className="billing-toggle">
@@ -462,7 +494,7 @@ export function Header() {
               {/* Plan Card */}
               <div className="rounded-2xl border border-border/60 p-6">
                 {/* Price with Animation */}
-                <div className="mb-5 overflow-hidden text-center">
+                <div className="mb-6 overflow-hidden text-center">
                   <div
                     key={billingCycle}
                     className={priceAnimating ? (animationDirection === "down" ? "price-animate-down" : "price-animate-up") : ""}
@@ -473,13 +505,20 @@ export function Header() {
                           <span className="font-serif text-5xl font-medium">
                             ¥{yearlyMonthlyEquivalent.toLocaleString()}
                           </span>
-                          <span className="text-lg text-muted-foreground">/ 月</span>
+                          <span className="text-base text-muted-foreground">/ 月</span>
+                          {isLaunchPeriod && (
+                            <span className="text-lg text-muted-foreground/60 line-through">
+                              ¥{Math.floor(regularYearlyPrice / 12).toLocaleString()}
+                            </span>
+                          )}
                         </div>
                         <p className="mt-2 text-sm text-muted-foreground">
                           ¥{yearlyPrice.toLocaleString()} 年払い
-                          <span className="ml-2 text-accent/70 line-through">
-                            ¥{(monthlyPrice * 12).toLocaleString()}
-                          </span>
+                          {isLaunchPeriod && (
+                            <span className="ml-2 text-muted-foreground/60 line-through">
+                              ¥{regularYearlyPrice.toLocaleString()}
+                            </span>
+                          )}
                         </p>
                       </>
                     ) : (
@@ -488,7 +527,12 @@ export function Header() {
                           <span className="font-serif text-5xl font-medium">
                             ¥{monthlyPrice.toLocaleString()}
                           </span>
-                          <span className="text-lg text-muted-foreground">/ 月</span>
+                          <span className="text-base text-muted-foreground">/ 月</span>
+                          {isLaunchPeriod && (
+                            <span className="text-lg text-muted-foreground/60 line-through">
+                              ¥{regularMonthlyPrice.toLocaleString()}
+                            </span>
+                          )}
                         </div>
                         <p className="mt-2 text-sm text-muted-foreground">
                           毎月の請求
@@ -499,7 +543,7 @@ export function Header() {
                 </div>
 
                 {/* Features */}
-                <ul className="space-y-3 mb-6">
+                <ul className="space-y-3.5 mb-8">
                   {PRO_FEATURES.map((feature, idx) => (
                     <li
                       key={idx}
@@ -507,15 +551,15 @@ export function Header() {
                       style={{ animationDelay: `${0.05 + idx * 0.05}s` }}
                     >
                       <div
-                        className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                        className={`flex h-7 w-7 items-center justify-center rounded-full ${
                           feature.highlight
                             ? "bg-primary/10 text-primary"
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        <feature.icon className="h-3.5 w-3.5" />
+                        <feature.icon className="h-4 w-4" />
                       </div>
-                      <span className={`text-sm ${feature.highlight ? "font-medium" : ""}`}>
+                      <span className={feature.highlight ? "font-medium" : ""}>
                         {feature.text}
                       </span>
                     </li>
@@ -524,7 +568,7 @@ export function Header() {
 
                 {/* CTA */}
                 <Button
-                  className="w-full gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 btn-bounce h-12 text-base"
+                  className="w-full gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 btn-bounce h-14 text-base"
                   size="lg"
                   onClick={() => handleTestPlanSwitch("pro")}
                   disabled={isUpdatingPlan}
@@ -535,7 +579,7 @@ export function Header() {
               </div>
 
               {/* Test Mode Notice */}
-              <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
+              <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
                 <p className="text-xs text-amber-600 flex items-center justify-center gap-1">
                   <FlaskConical className="h-3 w-3" />
                   テストモード：クリックでProに切り替わります
@@ -543,8 +587,8 @@ export function Header() {
               </div>
 
               {/* Footer */}
-              <p className="mt-4 text-center text-xs text-muted-foreground">
-                いつでもキャンセル可能 • 安心の返金保証
+              <p className="mt-5 text-center text-sm text-muted-foreground">
+                いつでもキャンセル可能
               </p>
             </div>
           </DialogPrimitive.Content>
