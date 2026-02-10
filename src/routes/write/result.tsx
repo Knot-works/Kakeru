@@ -274,6 +274,7 @@ export default function ResultPage() {
             userAnswer={writing.userAnswer}
             improvements={feedback.improvements}
             onAskAbout={handleAskAboutImprovement}
+            onAskAboutSelection={handleAskAboutSelection}
           />
         </div>
 
@@ -283,6 +284,7 @@ export default function ResultPage() {
             <StructureAnalysis
               userAnswer={writing.userAnswer}
               structureAnalysis={feedback.structureAnalysis}
+              onAskAboutSelection={handleAskAboutSelection}
             />
           </div>
         )}

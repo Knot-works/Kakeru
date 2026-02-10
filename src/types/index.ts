@@ -1,6 +1,6 @@
 export type Goal = "business" | "travel" | "study_abroad" | "daily" | "exam";
 export type Level = "beginner" | "intermediate" | "advanced";
-export type WritingMode = "goal" | "hobby" | "expression" | "custom";
+export type WritingMode = "goal" | "hobby" | "expression" | "custom" | "business" | "daily" | "social";
 export type VocabType = "word" | "expression";
 export type Plan = "free" | "pro";
 export type ExplanationLang = "ja" | "en";
@@ -324,6 +324,9 @@ export const MODE_LABELS: Record<WritingMode, string> = {
   hobby: "趣味・興味",
   expression: "表現リクエスト",
   custom: "カスタムお題",
+  business: "ビジネス",
+  daily: "日常",
+  social: "社会問題",
 };
 
 export interface DailyUsage {

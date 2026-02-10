@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
 import { useToken } from "@/contexts/token-context";
+import { useUpgradeModal } from "@/contexts/upgrade-modal-context";
 import { saveWriting, saveMistakes } from "@/lib/firestore";
 import { callGeneratePrompt, callGradeWriting, isRateLimitError, getRateLimitMessage } from "@/lib/functions";
-import { getEstimatedRemaining, formatTokens } from "@/lib/rate-limits";
+import { getEstimatedRemaining } from "@/lib/rate-limits";
 import { toast } from "sonner";
 import { DictionaryPanel } from "@/components/writing/dictionary-panel";
+import { OcrInput } from "@/components/writing/ocr-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,12 +26,19 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
+  Camera,
+  Keyboard,
+  Crown,
+  Lock,
+  Search,
+  AlertCircle,
 } from "lucide-react";
 import { type WritingMode, MODE_LABELS } from "@/types";
 
 export default function WritingPage() {
   const { user, profile } = useAuth();
   const { tokenUsage, refresh: refreshTokenUsage } = useToken();
+  const { open: openUpgradeModal } = useUpgradeModal();
   const navigate = useNavigate();
   const location = useLocation();
   const { mode: modeParam } = useParams<{ mode: string }>();
@@ -50,6 +59,12 @@ export default function WritingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [dictOpen, setDictOpen] = useState(true);
+  const [inputMode, setInputMode] = useState<"typing" | "ocr">("typing");
+  const [dictSearchTrigger, setDictSearchTrigger] = useState<{ word: string; timestamp: number } | undefined>();
+
+  // Ref-based guards to prevent race conditions on rapid clicks
+  const isGeneratingRef = useRef(false);
+  const isSubmittingRef = useRef(false);
 
   // Calculate remaining gradings based on token budget
   const tokensRemaining = tokenUsage ? tokenUsage.tokenLimit - tokenUsage.tokensUsed : 0;
@@ -61,11 +76,16 @@ export default function WritingPage() {
     : 0;
 
   const generatePrompt = useCallback(async (topicOverride?: string) => {
-    if (!profile) return;
+    if (!profile || isGeneratingRef.current) return;
+    isGeneratingRef.current = true;
     setGenerating(true);
     setShowExample(false);
     try {
-      const result = await callGeneratePrompt(profile, mode, topicOverride);
+      // For expression mode, always pass the customInput (expression to practice)
+      // For hobby mode with topic override, pass the topicOverride
+      // For other modes, pass topicOverride if provided
+      const inputToPass = mode === "expression" ? customInput : topicOverride;
+      const result = await callGeneratePrompt(profile, mode, inputToPass);
       setPrompt(result.prompt);
       setHint(result.hint);
       setRecommendedWords(result.recommendedWords);
@@ -74,14 +94,53 @@ export default function WritingPage() {
     } catch (error) {
       console.error("Failed to generate prompt:", error);
       if (isRateLimitError(error)) {
-        toast.error(getRateLimitMessage(error), { duration: 8000 });
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-900">
+                    利用制限に達しました
+                  </p>
+                  <p className="mt-1 text-sm text-red-700/80">
+                    {getRateLimitMessage(error)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 4000 }
+        );
       } else {
-        toast.error("お題の生成に失敗しました。もう一度お試しください。");
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-900">
+                    お題の生成に失敗しました
+                  </p>
+                  <p className="mt-1 text-sm text-red-700/80">
+                    もう一度お試しください
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 3500 }
+        );
       }
     } finally {
+      isGeneratingRef.current = false;
       setGenerating(false);
     }
-  }, [profile, mode]);
+  }, [profile, mode, customInput]);
 
   useEffect(() => {
     if (profile && mode !== "custom" && mode !== "expression" && !dailyPrompt) {
@@ -90,7 +149,8 @@ export default function WritingPage() {
   }, [profile, mode, generatePrompt, dailyPrompt]);
 
   const handleCustomSubmit = async () => {
-    if (!customInput.trim() || !profile) return;
+    if (!customInput.trim() || !profile || isGeneratingRef.current) return;
+    isGeneratingRef.current = true;
     setGenerating(true);
     setShowExample(false);
     try {
@@ -102,29 +162,59 @@ export default function WritingPage() {
       setKeywords(result.keywords || []);
     } catch (error) {
       console.error("Failed to generate prompt:", error);
-      if (mode === "expression") {
-        setPrompt(
-          `「${customInput}」を使って、自分の経験や考えを英語で書いてください`
+      // Show prominent error popup instead of falling back
+      if (isRateLimitError(error)) {
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-900">
+                    利用制限に達しました
+                  </p>
+                  <p className="mt-1 text-sm text-red-700/80">
+                    {getRateLimitMessage(error)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 4000 }
         );
-        setHint(customInput);
-        setRecommendedWords(60);
-        setExampleJa("");
-        setKeywords([]);
       } else {
-        setPrompt(customInput);
-        setHint("");
-        setRecommendedWords(80);
-        setExampleJa("");
-        setKeywords([]);
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-900">
+                    お題の生成に失敗しました
+                  </p>
+                  <p className="mt-1 text-sm text-red-700/80">
+                    しばらく時間をおいて、もう一度お試しください
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 3500 }
+        );
       }
-      toast.error("AI生成に失敗しました。入力したお題をそのまま使用します。");
     } finally {
+      isGeneratingRef.current = false;
       setGenerating(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (!user || !profile || !userAnswer.trim() || !prompt) return;
+    if (!user || !profile || !userAnswer.trim() || !prompt || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -156,13 +246,52 @@ export default function WritingPage() {
     } catch (error) {
       console.error("Failed to grade writing:", error);
       if (isRateLimitError(error)) {
-        toast.error(getRateLimitMessage(error), { duration: 8000 });
         // Refetch token usage to get updated limits
         refreshTokenUsage();
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-900">
+                    利用制限に達しました
+                  </p>
+                  <p className="mt-1 text-sm text-red-700/80">
+                    {getRateLimitMessage(error)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 4000 }
+        );
       } else {
-        toast.error("添削に失敗しました。もう一度お試しください。");
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-red-900">
+                    添削に失敗しました
+                  </p>
+                  <p className="mt-1 text-sm text-red-700/80">
+                    もう一度お試しください
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 3500 }
+        );
       }
     } finally {
+      isSubmittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -217,9 +346,9 @@ export default function WritingPage() {
                 />
                 <Button
                   onClick={handleCustomSubmit}
-                  disabled={!customInput.trim()}
+                  disabled={!customInput.trim() || generating}
                 >
-                  決定
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : "決定"}
                 </Button>
               </div>
             </CardContent>
@@ -278,17 +407,25 @@ export default function WritingPage() {
                   {/* Keywords */}
                   {keywords.length > 0 && (
                     <div className="flex items-center gap-2 flex-wrap mt-3">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Tag className="h-3 w-3" />
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Tag className="h-3.5 w-3.5" />
                         <span>使える表現:</span>
                       </div>
                       {keywords.map((keyword, idx) => (
-                        <span
+                        <button
                           key={idx}
-                          className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                          onClick={() => {
+                            setDictOpen(true);
+                            setDictSearchTrigger({ word: keyword, timestamp: Date.now() });
+                          }}
+                          className="group relative rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                          title="クリックで辞書検索"
                         >
-                          {keyword}
-                        </span>
+                          <span className="flex items-center gap-1">
+                            {keyword}
+                            <Search className="h-3 w-3 opacity-0 group-hover:opacity-70 transition-opacity" />
+                          </span>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -387,56 +524,140 @@ export default function WritingPage() {
               </div>
             )}
 
+            {/* Header with Input Mode Toggle */}
             <div className="flex items-center justify-between">
-              <p className="font-medium">あなたの回答</p>
-              <span
-                className={`text-sm ${
-                  wordCount >= recommendedWords
-                    ? "text-primary font-medium"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {wordCount} / {recommendedWords}語
-              </span>
-            </div>
-            <div className="writing-area rounded-xl">
-              <Textarea
-                placeholder="英語で回答を入力してください..."
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                rows={12}
-                disabled={submitting}
-                maxLength={5000}
-                className="min-h-[300px] resize-none border-border/60 bg-card text-base leading-relaxed focus-visible:ring-primary disabled:opacity-50"
-              />
-            </div>
-            <div className="flex items-center justify-end gap-3">
-              {tokenUsage && (
-                <span className="text-xs text-muted-foreground">
-                  残り約{gradingRemaining}回（{formatTokens(tokensRemaining)}トークン）
+              <div className="flex items-center gap-3">
+                <p className="font-medium">あなたの回答</p>
+                {/* Input mode toggle - Available for all, Pro feature */}
+                <div className="flex rounded-lg bg-muted/60 p-0.5">
+                  <button
+                    onClick={() => setInputMode("typing")}
+                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      inputMode === "typing"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Keyboard className="h-3 w-3" />
+                    タイピング
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (tokenUsage?.plan === "pro") {
+                        setInputMode("ocr");
+                      } else {
+                        toast.custom(
+                          (t) => (
+                            <div className="w-[360px] rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-lg">
+                              <div className="flex items-start gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                                  <Crown className="h-5 w-5 text-amber-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-amber-900">
+                                    手書き認識はProプラン限定機能です
+                                  </p>
+                                  <p className="mt-1 text-sm text-amber-700/80">
+                                    アップグレードすると手書きの英文を読み取れます
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  toast.dismiss(t);
+                                  openUpgradeModal();
+                                }}
+                                className="mt-3 w-full rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:from-amber-600 hover:to-orange-600"
+                              >
+                                詳しく見る
+                              </button>
+                            </div>
+                          ),
+                          { duration: 5000 }
+                        );
+                      }
+                    }}
+                    className={`relative flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      inputMode === "ocr"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Camera className="h-3 w-3" />
+                    手書き認識
+                    {tokenUsage?.plan !== "pro" && (
+                      <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500/10">
+                        <Lock className="h-2.5 w-2.5 text-amber-600" />
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+              {inputMode === "typing" && (
+                <span
+                  className={`text-sm ${
+                    wordCount >= recommendedWords
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {wordCount} / {recommendedWords}語
                 </span>
               )}
-              <Button
-                onClick={handleSubmit}
-                disabled={submitting || wordCount < 5 || gradingLimitReached}
-                className="gap-2 px-8 btn-bounce"
-                size="lg"
-              >
-                {gradingLimitReached ? (
-                  <>トークン上限に達しました</>
-                ) : submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    添削中...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    添削する
-                  </>
-                )}
-              </Button>
             </div>
+
+            {/* OCR Input Mode */}
+            {inputMode === "ocr" ? (
+              <Card>
+                <CardContent className="p-6">
+                  <OcrInput
+                    onComplete={(text) => {
+                      setUserAnswer(text);
+                      setInputMode("typing");
+                      toast.success("テキストを読み取りました");
+                    }}
+                    onCancel={() => setInputMode("typing")}
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Typing Input Mode */}
+                <div className="writing-area rounded-xl">
+                  <Textarea
+                    placeholder="英語で回答を入力してください..."
+                    value={userAnswer}
+                    onChange={(e) => setUserAnswer(e.target.value)}
+                    rows={12}
+                    disabled={submitting}
+                    maxLength={5000}
+                    className="min-h-[300px] resize-none border-border/60 bg-card text-base leading-relaxed focus-visible:ring-primary disabled:opacity-50"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3">
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={submitting || wordCount < 5 || gradingLimitReached}
+                    className="gap-2 px-8 btn-bounce"
+                    size="lg"
+                  >
+                    {gradingLimitReached ? (
+                      <>トークン上限に達しました</>
+                    ) : submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        添削中...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        添削する
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -461,7 +682,10 @@ export default function WritingPage() {
               "lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]",
             ].join(" ")}
           >
-            <DictionaryPanel onClose={() => setDictOpen(false)} />
+            <DictionaryPanel
+              onClose={() => setDictOpen(false)}
+              searchTrigger={dictSearchTrigger}
+            />
           </aside>
         </>
       )}
