@@ -105,11 +105,11 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-muted-foreground">
             ログインすることで、
-            <a href="#" className="underline hover:text-foreground">
+            <a href="/terms" className="underline hover:text-foreground">
               利用規約
             </a>
             と
-            <a href="#" className="underline hover:text-foreground">
+            <a href="/privacy" className="underline hover:text-foreground">
               プライバシーポリシー
             </a>
             に同意したことになります。
