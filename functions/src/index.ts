@@ -1259,7 +1259,6 @@ interface DailyPromptEntry {
 interface DailyPromptsData {
   goal: DailyPromptEntry;
   hobby: DailyPromptEntry;
-  news: DailyPromptEntry;
   generatedAt: FirebaseFirestore.FieldValue;
 }
 
@@ -1287,11 +1286,10 @@ export const getDailyPrompts = onCall(
       return {
         goal: data.goal,
         hobby: data.hobby,
-        news: data.news,
       };
     }
 
-    // Generate all 3 mode prompts in a single API call
+    // Generate 2 mode prompts in a single API call
     const openai = new OpenAI({
       apiKey: openaiApiKey.value(),
     });
@@ -1302,13 +1300,12 @@ export const getDailyPrompts = onCall(
         messages: [
           {
             role: "user",
-            content: `あなたは英語ライティング学習サービスの出題者です。今日（${dateStr}）の日替わりお題を3つ生成してください。
+            content: `あなたは英語ライティング学習サービスの出題者です。今日（${dateStr}）の日替わりお題を2つ生成してください。
 全ユーザー共通のお題なので、特定のレベルに偏らず、幅広い学習者が取り組めるテーマにしてください。
 
-【3つのモード】
+【2つのモード】
 1. goal（目標特化）: ビジネスメール、レポート、プレゼンなど実務的なシチュエーション
 2. hobby（趣味・興味）: 趣味、日常生活、文化、エンタメなど楽しいテーマ
-3. news（ニュース英作文）: 社会問題、テクノロジー、環境など意見を述べるテーマ
 
 【出力形式】
 以下のJSON形式のみを出力してください：
@@ -1322,20 +1319,15 @@ export const getDailyPrompts = onCall(
     "prompt": "お題（日本語で、具体的な質問やシチュエーション）",
     "hint": "役立つ英語表現のヒント（英語で1〜2個）",
     "recommendedWords": 60
-  },
-  "news": {
-    "prompt": "お題（日本語で、意見を求める形式）",
-    "hint": "役立つ英語表現のヒント（英語で1〜2個）",
-    "recommendedWords": 100
   }
 }
 
 お題は毎日異なる内容にし、具体的で取り組みやすいものにしてください。
-推奨語数は goal=70〜100, hobby=50〜80, news=80〜120 の範囲で設定してください。`,
+推奨語数は goal=70〜100, hobby=50〜80 の範囲で設定してください。`,
           },
         ],
         temperature: 0.9,
-        max_tokens: 800,
+        max_tokens: 600,
         response_format: { type: "json_object" },
       });
 
@@ -1347,14 +1339,12 @@ export const getDailyPrompts = onCall(
       const result = parseJsonResponse(content) as {
         goal: DailyPromptEntry;
         hobby: DailyPromptEntry;
-        news: DailyPromptEntry;
       };
 
       // Cache in Firestore
       const toSave: DailyPromptsData = {
         goal: result.goal,
         hobby: result.hobby,
-        news: result.news,
         generatedAt: FieldValue.serverTimestamp(),
       };
       await docRef.set(toSave);
@@ -1362,7 +1352,6 @@ export const getDailyPrompts = onCall(
       return {
         goal: result.goal,
         hobby: result.hobby,
-        news: result.news,
       };
     } catch (error: unknown) {
       if (error instanceof HttpsError) throw error;
