@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToken } from "@/contexts/token-context";
 import { useUpgradeModal } from "@/contexts/upgrade-modal-context";
 import { saveWriting, saveMistakes } from "@/lib/firestore";
-import { callGeneratePrompt, callGradeWriting, isRateLimitError, getRateLimitMessage } from "@/lib/functions";
+import { callGeneratePrompt, callGradeWriting, isRateLimitError } from "@/lib/functions";
 import { Analytics } from "@/lib/firebase";
 import { getEstimatedRemaining } from "@/lib/rate-limits";
 import { toast } from "sonner";
@@ -99,17 +99,17 @@ export default function WritingPage() {
       if (isRateLimitError(error)) {
         toast.custom(
           () => (
-            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+            <div className="w-[360px] rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-lg">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <Crown className="h-5 w-5 text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-red-900">
-                    利用制限に達しました
+                  <p className="font-medium text-amber-900">
+                    無料枠を使い切りました
                   </p>
-                  <p className="mt-1 text-sm text-red-700/80">
-                    {getRateLimitMessage(error)}
+                  <p className="mt-1 text-sm text-amber-700/80">
+                    Proプランで学習を続けましょう
                   </p>
                 </div>
               </div>
@@ -117,33 +117,15 @@ export default function WritingPage() {
           ),
           { duration: 4000 }
         );
+        openUpgradeModal();
       } else {
-        toast.custom(
-          () => (
-            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-red-900">
-                    お題の生成に失敗しました
-                  </p>
-                  <p className="mt-1 text-sm text-red-700/80">
-                    もう一度お試しください
-                  </p>
-                </div>
-              </div>
-            </div>
-          ),
-          { duration: 3500 }
-        );
+        toast.error("お題の生成に失敗しました");
       }
     } finally {
       isGeneratingRef.current = false;
       setGenerating(false);
     }
-  }, [profile, mode, customInput]);
+  }, [profile, mode, customInput, openUpgradeModal]);
 
   useEffect(() => {
     if (profile && mode !== "custom" && mode !== "expression" && !dailyPrompt) {
@@ -165,21 +147,20 @@ export default function WritingPage() {
       setKeywords(result.keywords || []);
     } catch (error) {
       console.error("Failed to generate prompt:", error);
-      // Show prominent error popup instead of falling back
       if (isRateLimitError(error)) {
         toast.custom(
           () => (
-            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+            <div className="w-[360px] rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-lg">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <Crown className="h-5 w-5 text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-red-900">
-                    利用制限に達しました
+                  <p className="font-medium text-amber-900">
+                    無料枠を使い切りました
                   </p>
-                  <p className="mt-1 text-sm text-red-700/80">
-                    {getRateLimitMessage(error)}
+                  <p className="mt-1 text-sm text-amber-700/80">
+                    Proプランで学習を続けましょう
                   </p>
                 </div>
               </div>
@@ -187,27 +168,9 @@ export default function WritingPage() {
           ),
           { duration: 4000 }
         );
+        openUpgradeModal();
       } else {
-        toast.custom(
-          () => (
-            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-red-900">
-                    お題の生成に失敗しました
-                  </p>
-                  <p className="mt-1 text-sm text-red-700/80">
-                    しばらく時間をおいて、もう一度お試しください
-                  </p>
-                </div>
-              </div>
-            </div>
-          ),
-          { duration: 3500 }
-        );
+        toast.error("お題の生成に失敗しました");
       }
     } finally {
       isGeneratingRef.current = false;
@@ -254,21 +217,20 @@ export default function WritingPage() {
       console.error("Failed to grade writing:", error);
       Analytics.errorOccurred({ type: "grading", message: String(error), location: "handleSubmit" });
       if (isRateLimitError(error)) {
-        // Refetch token usage to get updated limits
         refreshTokenUsage();
         toast.custom(
           () => (
-            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
+            <div className="w-[360px] rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-lg">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <Crown className="h-5 w-5 text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-red-900">
-                    利用制限に達しました
+                  <p className="font-medium text-amber-900">
+                    無料枠を使い切りました
                   </p>
-                  <p className="mt-1 text-sm text-red-700/80">
-                    {getRateLimitMessage(error)}
+                  <p className="mt-1 text-sm text-amber-700/80">
+                    Proプランで学習を続けましょう
                   </p>
                 </div>
               </div>
@@ -276,27 +238,9 @@ export default function WritingPage() {
           ),
           { duration: 4000 }
         );
+        openUpgradeModal();
       } else {
-        toast.custom(
-          () => (
-            <div className="w-[360px] rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-lg">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-red-900">
-                    添削に失敗しました
-                  </p>
-                  <p className="mt-1 text-sm text-red-700/80">
-                    もう一度お試しください
-                  </p>
-                </div>
-              </div>
-            </div>
-          ),
-          { duration: 3500 }
-        );
+        toast.error("添削に失敗しました");
       }
     } finally {
       isSubmittingRef.current = false;
@@ -644,14 +588,12 @@ export default function WritingPage() {
                 </div>
                 <div className="flex items-center justify-end gap-3">
                   <Button
-                    onClick={handleSubmit}
-                    disabled={submitting || wordCount < 5 || gradingLimitReached}
+                    onClick={gradingLimitReached ? openUpgradeModal : handleSubmit}
+                    disabled={submitting || wordCount < 5}
                     className="gap-2 px-8 btn-bounce"
                     size="lg"
                   >
-                    {gradingLimitReached ? (
-                      <>トークン上限に達しました</>
-                    ) : submitting ? (
+                    {submitting ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         添削中...

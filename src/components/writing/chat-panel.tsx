@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { callAskFollowUp, isRateLimitError, getRateLimitMessage } from "@/lib/functions";
+import { callAskFollowUp, isRateLimitError } from "@/lib/functions";
+import { useUpgradeModal } from "@/contexts/upgrade-modal-context";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ import {
   User,
   Bot,
   Sparkles,
+  Crown,
 } from "lucide-react";
 import type { WritingFeedback, Improvement, ChatMessage } from "@/types";
 
@@ -25,6 +27,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelProps) {
+  const { open: openUpgradeModal } = useUpgradeModal();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -119,9 +122,28 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      console.error("Chat error:", err);
       if (isRateLimitError(err)) {
-        toast.error(getRateLimitMessage(err), { duration: 8000 });
+        toast.custom(
+          () => (
+            <div className="w-[360px] rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <Crown className="h-5 w-5 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-amber-900">
+                    無料枠を使い切りました
+                  </p>
+                  <p className="mt-1 text-sm text-amber-700/80">
+                    Proプランで学習を続けましょう
+                  </p>
+                </div>
+              </div>
+            </div>
+          ),
+          { duration: 4000 }
+        );
+        openUpgradeModal();
       } else {
         toast.error("回答の取得に失敗しました");
       }
@@ -131,7 +153,7 @@ export function ChatPanel({ writingContext, onClose, lang = "ja" }: ChatPanelPro
       isSendingRef.current = false;
       setSending(false);
     }
-  }, [input, sending, messages, writingContext, pendingContext, lang]);
+  }, [input, sending, messages, writingContext, pendingContext, lang, openUpgradeModal]);
 
   // Set context for asking about a specific improvement
   const askAboutImprovement = useCallback(

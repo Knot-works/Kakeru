@@ -214,7 +214,7 @@ export function Header() {
               isFreePlan ? (
                 <Button
                   size="sm"
-                  onClick={openUpgradeModal}
+                  onClick={() => openUpgradeModal()}
                   className="hidden gap-1.5 rounded-full bg-gradient-to-r from-accent to-orange-500 text-white hover:from-accent/90 hover:to-orange-500/90 sm:flex btn-bounce"
                 >
                   <Sparkles className="h-3.5 w-3.5" />

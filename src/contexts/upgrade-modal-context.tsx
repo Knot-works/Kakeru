@@ -11,14 +11,11 @@ const UpgradeModalContext = createContext<UpgradeModalContextType | null>(null);
 export function UpgradeModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const open = () => setIsOpen(true);
+  const close = () => setIsOpen(false);
+
   return (
-    <UpgradeModalContext.Provider
-      value={{
-        isOpen,
-        open: () => setIsOpen(true),
-        close: () => setIsOpen(false),
-      }}
-    >
+    <UpgradeModalContext.Provider value={{ isOpen, open, close }}>
       {children}
     </UpgradeModalContext.Provider>
   );
