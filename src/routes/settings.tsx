@@ -158,7 +158,7 @@ function SubscriptionManagement() {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut } = useAuth();
-  const { tokenUsage, loading: loadingTokens, refresh: refreshTokenUsage } = useToken();
+  const { tokenUsage, loading: loadingTokens } = useToken();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -309,21 +309,9 @@ export default function SettingsPage() {
       {/* Token Usage */}
       <Card>
         <CardContent className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Coins className="h-4 w-4 text-primary" />
-              <h2 className="font-serif text-lg font-medium">トークン使用量</h2>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refreshTokenUsage}
-              disabled={loadingTokens}
-              className="gap-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loadingTokens ? "animate-spin" : ""}`} />
-              更新
-            </Button>
+          <div className="flex items-center gap-2">
+            <Coins className="h-4 w-4 text-primary" />
+            <h2 className="font-serif text-lg font-medium">トークン使用量</h2>
           </div>
           <Separator />
 
