@@ -85,9 +85,13 @@ export default function CommercialPage() {
                   販売価格
                 </th>
                 <td className="px-6 py-4 text-muted-foreground">
+                  <p className="font-medium text-foreground">ローンチ記念価格（2026年5月末まで）</p>
                   <p>Proプラン月額: 980円（税込）</p>
                   <p>Proプラン年額: 9,400円（税込）</p>
-                  <p className="mt-2 text-sm">※ 無料プランは0円でご利用いただけます</p>
+                  <p className="mt-3 font-medium text-foreground">通常価格（2026年6月以降）</p>
+                  <p>Proプラン月額: 1,280円（税込）</p>
+                  <p>Proプラン年額: 9,800円（税込）</p>
+                  <p className="mt-3 text-sm">※ 無料プランは0円でご利用いただけます</p>
                 </td>
               </tr>
               <tr className="flex flex-col sm:table-row">
@@ -103,7 +107,8 @@ export default function CommercialPage() {
                   支払方法
                 </th>
                 <td className="px-6 py-4 text-muted-foreground">
-                  クレジットカード（Visa、Mastercard、American Express、JCB）
+                  <p>クレジットカード（Visa、Mastercard、American Express、JCB）</p>
+                  <p className="mt-2 text-sm">※ 決済処理はStripe, Inc.を通じて行われます</p>
                 </td>
               </tr>
               <tr className="flex flex-col sm:table-row">

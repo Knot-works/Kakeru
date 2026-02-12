@@ -127,7 +127,15 @@ export default function PrivacyPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                  <span><strong>OpenAI:</strong> AIによる添削・お題生成機能</span>
+                  <span><strong>Google Analytics:</strong> サービスの利用状況分析（匿名化されたデータ）</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  <span><strong>OpenAI:</strong> AIによる添削・お題生成機能（APIを使用しており、送信されたデータはOpenAIのモデル学習に使用されません）</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                  <span><strong>Stripe:</strong> 決済処理（クレジットカード情報は当サービスでは保持せず、Stripeが安全に管理します）</span>
                 </li>
               </ul>
             </section>

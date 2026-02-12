@@ -102,9 +102,10 @@ export default function TermsPage() {
             <section>
               <h2 className="font-serif text-xl font-medium mb-4">第5条（料金・支払い）</h2>
               <ol className="space-y-3 text-muted-foreground list-decimal list-inside">
-                <li>無料プランは、月間のトークン使用量に制限があります。</li>
+                <li>無料プランは、トークン使用量に制限があります。</li>
                 <li>有料プラン（Proプラン）の料金は、料金ページに記載のとおりとします。</li>
-                <li>支払いはクレジットカードにより行い、解約するまで自動更新されます。</li>
+                <li>支払いはクレジットカードにより行い、決済処理はStripe, Inc.を通じて安全に行われます。</li>
+                <li>有料プランは解約するまで自動更新されます。解約は設定画面からいつでも可能です。</li>
                 <li>いったん支払われた料金は、法令に定める場合を除き、返金いたしません。</li>
               </ol>
             </section>
