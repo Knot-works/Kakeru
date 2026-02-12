@@ -382,7 +382,7 @@ export default function PricingPage() {
               <CardContent className="p-6">
                 <h3 className="mb-2 font-medium">無料プランでも添削の品質は同じですか？</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  無料プランでは標準モデルを使用しています。Proプランでは最新のGPT-4oモデルによる、より精度の高いフィードバックを受けられます。
+                  無料プランでは標準モデルを使用しています。Proプランでは高精度モデルによる、より精度の高いフィードバックを受けられます。
                 </p>
               </CardContent>
             </Card>
