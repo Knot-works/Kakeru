@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { useToken } from "@/contexts/token-context";
 import { useUpgradeModal } from "@/contexts/upgrade-modal-context";
-import { callTestSwitchPlan, callDeleteAccount } from "@/lib/functions";
+import { callCreateCheckoutSession, callDeleteAccount } from "@/lib/functions";
 import { formatTokens, getUsagePercentage } from "@/lib/rate-limits";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ import {
   Zap,
   BookOpen,
   Infinity,
-  FlaskConical,
   Coins,
   Trash2,
   Loader2,
@@ -42,7 +41,7 @@ const PLAN_LABELS = {
 
 const PRO_FEATURES = [
   { icon: Infinity, text: "月間2,000,000トークン", highlight: true },
-  { icon: Zap, text: "高精度モデル（GPT-4o）で添削", highlight: true },
+  { icon: Zap, text: "高精度モデルで添削", highlight: true },
   { icon: BookOpen, text: "学習履歴・単語帳が無制限" },
   { icon: Camera, text: "手書き文字認識（OCR）", highlight: true },
 ];
@@ -153,22 +152,22 @@ export function Header() {
     setTimeout(() => setPriceAnimating(false), 350);
   };
 
-  // Test function to switch plan (via Cloud Function to bypass Firestore rules)
-  const handleTestPlanSwitch = async (newPlan: "free" | "pro") => {
+  // Start Stripe checkout session
+  const handleCheckout = async () => {
     if (!user) return;
     setIsUpdatingPlan(true);
     try {
-      await callTestSwitchPlan(newPlan);
-      await refreshProfile();
-      // Refresh token usage after plan change
-      await refreshTokenUsage();
-      toast.success(`プランを${newPlan === "pro" ? "Pro" : "無料"}に変更しました（テスト）`);
-      if (newPlan === "pro") {
-        closeUpgradeModal();
+      const { url } = await callCreateCheckoutSession(
+        billingCycle,
+        `${window.location.origin}/dashboard?checkout=success`,
+        `${window.location.origin}/pricing?checkout=canceled`
+      );
+      if (url) {
+        window.location.href = url;
       }
     } catch (error) {
-      console.error("Failed to update plan:", error);
-      toast.error("プランの変更に失敗しました");
+      console.error("Checkout error:", error);
+      toast.error("決済の開始に失敗しました");
     } finally {
       setIsUpdatingPlan(false);
     }
@@ -363,18 +362,8 @@ export function Header() {
                   }}
                   className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-muted/50"
                 >
-                  <User className="h-5 w-5 text-muted-foreground" />
-                  <span>プロフィール設定</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setUserModalOpen(false);
-                    navigate("/settings");
-                  }}
-                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                >
                   <Settings className="h-5 w-5 text-muted-foreground" />
-                  <span>学習設定</span>
+                  <span>設定</span>
                 </button>
                 <div className="my-2 border-t border-border/60" />
                 <button
@@ -396,33 +385,6 @@ export function Header() {
                 </button>
               </div>
 
-              {/* Test Mode: Plan Switch */}
-              <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <FlaskConical className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-700">テストモード</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant={isFreePlan ? "default" : "outline"}
-                    disabled={isFreePlan || isUpdatingPlan}
-                    onClick={() => handleTestPlanSwitch("free")}
-                    className="flex-1 rounded-xl"
-                  >
-                    無料に変更
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={!isFreePlan ? "default" : "outline"}
-                    disabled={!isFreePlan || isUpdatingPlan}
-                    onClick={() => handleTestPlanSwitch("pro")}
-                    className="flex-1 rounded-xl"
-                  >
-                    Proに変更
-                  </Button>
-                </div>
-              </div>
             </div>
           </DialogPrimitive.Content>
         </DialogPortal>
@@ -570,20 +532,16 @@ export function Header() {
                 <Button
                   className="w-full gap-2 rounded-2xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 btn-bounce h-14 text-base"
                   size="lg"
-                  onClick={() => handleTestPlanSwitch("pro")}
+                  onClick={handleCheckout}
                   disabled={isUpdatingPlan}
                 >
-                  <Crown className="h-5 w-5" />
+                  {isUpdatingPlan ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Crown className="h-5 w-5" />
+                  )}
                   {isUpdatingPlan ? "処理中..." : "Proプランをはじめる"}
                 </Button>
-              </div>
-
-              {/* Test Mode Notice */}
-              <div className="mt-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 text-center">
-                <p className="text-xs text-amber-600 flex items-center justify-center gap-1">
-                  <FlaskConical className="h-3 w-3" />
-                  テストモード：クリックでProに切り替わります
-                </p>
               </div>
 
               {/* Footer */}

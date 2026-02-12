@@ -203,17 +203,52 @@ export async function callGetDailyPrompts(): Promise<DailyPrompts> {
   return result.data;
 }
 
-// ============ Test: Plan Switch ============
+// ============ Stripe: Checkout Session ============
 
-export async function callTestSwitchPlan(
-  plan: "free" | "pro"
-): Promise<{ success: boolean; plan: string }> {
+export async function callCreateCheckoutSession(
+  billingCycle: "monthly" | "yearly",
+  successUrl: string,
+  cancelUrl: string
+): Promise<{ url: string }> {
   const fn = httpsCallable<
-    { plan: "free" | "pro" },
-    { success: boolean; plan: string }
-  >(functions, "testSwitchPlan");
+    { billingCycle: "monthly" | "yearly"; successUrl: string; cancelUrl: string },
+    { url: string }
+  >(functions, "createCheckoutSession");
 
-  const result = await fn({ plan });
+  const result = await fn({ billingCycle, successUrl, cancelUrl });
+  return result.data;
+}
+
+// ============ Stripe: Customer Portal ============
+
+export async function callCreatePortalSession(
+  returnUrl: string
+): Promise<{ url: string }> {
+  const fn = httpsCallable<
+    { returnUrl: string },
+    { url: string }
+  >(functions, "createPortalSession");
+
+  const result = await fn({ returnUrl });
+  return result.data;
+}
+
+// ============ Stripe: Get Subscription Details ============
+
+export interface SubscriptionDetails {
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string;
+  billingCycle: "monthly" | "yearly";
+}
+
+export async function callGetSubscriptionDetails(): Promise<SubscriptionDetails> {
+  const fn = httpsCallable<Record<string, never>, SubscriptionDetails>(
+    functions,
+    "getSubscriptionDetails"
+  );
+
+  const result = await fn({});
   return result.data;
 }
 
@@ -284,5 +319,31 @@ export async function callDeleteAccount(): Promise<DeleteAccountResponse> {
   );
 
   const result = await fn({});
+  return result.data;
+}
+
+// ============ Feedback ============
+
+export type FeedbackCategory = "bug" | "feature" | "other";
+
+export interface SubmitFeedbackRequest {
+  category: FeedbackCategory;
+  content: string;
+}
+
+export interface SubmitFeedbackResponse {
+  success: boolean;
+  id: string;
+}
+
+export async function callSubmitFeedback(
+  request: SubmitFeedbackRequest
+): Promise<SubmitFeedbackResponse> {
+  const fn = httpsCallable<SubmitFeedbackRequest, SubmitFeedbackResponse>(
+    functions,
+    "submitFeedback"
+  );
+
+  const result = await fn(request);
   return result.data;
 }

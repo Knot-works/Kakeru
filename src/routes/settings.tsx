@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
 import { useToken } from "@/contexts/token-context";
 import { updateUserProfile } from "@/lib/firestore";
-import { callDeleteAccount } from "@/lib/functions";
+import { Analytics } from "@/lib/firebase";
+import { callDeleteAccount, callCreatePortalSession, callGetSubscriptionDetails, type SubscriptionDetails } from "@/lib/functions";
 import { formatTokens, getUsagePercentage } from "@/lib/rate-limits";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,9 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
+  CreditCard,
+  ExternalLink,
+  CalendarDays,
 } from "lucide-react";
 import {
   type Goal,
@@ -50,6 +54,106 @@ import {
   GRADE_OPTIONS,
   OCCUPATION_OPTIONS,
 } from "@/types";
+
+function SubscriptionManagement() {
+  const [loading, setLoading] = useState(false);
+  const [subscriptionDetails, setSubscriptionDetails] = useState<SubscriptionDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(true);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        const details = await callGetSubscriptionDetails();
+        setSubscriptionDetails(details);
+      } catch (error) {
+        console.error("Failed to fetch subscription details:", error);
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+    fetchDetails();
+  }, []);
+
+  const handleManageSubscription = async () => {
+    setLoading(true);
+    try {
+      const { url } = await callCreatePortalSession(window.location.href);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+      alert("サブスクリプション管理ページを開けませんでした。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  };
+
+  return (
+    <div className="pt-4 border-t border-border/50 space-y-4">
+      {/* Subscription Status */}
+      {loadingDetails ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          サブスクリプション情報を読み込み中...
+        </div>
+      ) : subscriptionDetails ? (
+        <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              {subscriptionDetails.billingCycle === "yearly" ? "年額プラン" : "月額プラン"}
+            </span>
+          </div>
+
+          {subscriptionDetails.cancelAtPeriodEnd ? (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                解約予約済み
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {formatDate(subscriptionDetails.currentPeriodEnd)}まで引き続きご利用いただけます。
+                その後、自動的に無料プランに移行します。
+              </p>
+            </div>
+          ) : (
+            <div className="text-sm">
+              <span className="text-muted-foreground">次回更新日: </span>
+              <span className="font-medium">{formatDate(subscriptionDetails.currentPeriodEnd)}</span>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Manage Button */}
+      <div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManageSubscription}
+          disabled={loading}
+          className="gap-2"
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CreditCard className="h-4 w-4" />
+          )}
+          サブスクリプションを管理
+          <ExternalLink className="h-3 w-3" />
+        </Button>
+        <p className="mt-2 text-xs text-muted-foreground">
+          支払い方法の変更・プラン解約はこちらから
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -129,6 +233,7 @@ export default function SettingsPage() {
         customInterests: customInterests.length > 0 ? customInterests : undefined,
       });
       await refreshProfile();
+      Analytics.profileSetup({ userType, goal, level });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -195,6 +300,9 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
+          {profile?.plan === "pro" && (
+            <SubscriptionManagement />
+          )}
         </CardContent>
       </Card>
 

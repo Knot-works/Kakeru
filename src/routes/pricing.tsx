@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
+import { callCreateCheckoutSession } from "@/lib/functions";
+import { Analytics } from "@/lib/firebase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,12 +14,13 @@ import {
   ArrowLeft,
   Zap,
   Infinity,
-  X,
   PenLine,
   ScanLine,
   History,
   NotebookText,
   Rocket,
+  Loader2,
+  Settings,
 } from "lucide-react";
 
 // 順番を揃えて対比しやすく（アイコンも対応）
@@ -31,7 +34,7 @@ const FREE_FEATURES = [
 
 const PRO_FEATURES = [
   { icon: Infinity, text: "月間2,000,000トークン", highlight: true },
-  { icon: Zap, text: "高精度モデル（GPT-4o）で添削", highlight: true },
+  { icon: Zap, text: "高精度モデルで添削", highlight: true },
   { icon: History, text: "学習履歴 無制限" },
   { icon: NotebookText, text: "単語帳 無制限" },
   { icon: ScanLine, text: "手書き文字認識（OCR）", highlight: true },
@@ -57,9 +60,31 @@ export default function PricingPage() {
   const yearlyPrice = isLaunchPeriod ? launchYearlyPrice : regularYearlyPrice;
   const yearlyMonthlyEquivalent = Math.floor(yearlyPrice / 12);
 
-  const handleSelectPro = () => {
-    // TODO: Implement Stripe checkout
-    console.log("Selected Pro plan with billing:", billingCycle);
+  const [loading, setLoading] = useState(false);
+
+  const handleSelectPro = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    Analytics.upgradeClicked("pricing_page");
+    setLoading(true);
+    try {
+      const { url } = await callCreateCheckoutSession(
+        billingCycle,
+        `${window.location.origin}/dashboard?checkout=success`,
+        `${window.location.origin}/pricing?checkout=canceled`
+      );
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert("決済の開始に失敗しました。もう一度お試しください。");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -199,14 +224,28 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Button
-                variant="outline"
-                size="lg"
-                disabled={isFreePlan}
-                className="w-full"
-              >
-                {isFreePlan ? "現在のプラン" : "無料プランに変更"}
-              </Button>
+              {isFreePlan ? (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  disabled
+                  className="w-full"
+                >
+                  現在のプラン
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  asChild
+                  className="w-full gap-2"
+                >
+                  <Link to="/settings">
+                    <Settings className="h-4 w-4" />
+                    設定でプランを管理
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -296,11 +335,16 @@ export default function PricingPage() {
               <Button
                 size="lg"
                 onClick={handleSelectPro}
-                disabled={currentPlan === "pro"}
+                disabled={currentPlan === "pro" || loading}
                 className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
                 {currentPlan === "pro" ? (
                   "現在のプラン"
+                ) : loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    処理中...
+                  </>
                 ) : (
                   <>
                     <Crown className="h-4 w-4" />
