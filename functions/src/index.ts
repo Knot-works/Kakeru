@@ -228,26 +228,33 @@ function sanitizeUserInput(input: string): string {
     .trim();
 }
 
-// Get the monthly billing period (1st of each month in JST)
-function getMonthlyPeriod(): { periodStart: Date; periodEnd: Date } {
-  const now = new Date(Date.now() + 9 * 3600_000); // JST
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
+// Get billing period from user's stored subscription data
+// Returns null if no subscription period is stored (for free users)
+function getStoredBillingPeriod(tokenUsage: Record<string, unknown> | undefined): { periodStart: Date; periodEnd: Date } | null {
+  if (!tokenUsage) return null;
 
-  const periodStart = new Date(Date.UTC(year, month, 1));
-  const periodEnd = new Date(Date.UTC(year, month + 1, 1));
+  const periodStart = tokenUsage.periodStart;
+  const periodEnd = tokenUsage.periodEnd;
 
-  return { periodStart, periodEnd };
+  if (!periodStart || !periodEnd) return null;
+
+  // Handle Firestore Timestamp objects
+  const startDate = typeof (periodStart as { toDate?: () => Date }).toDate === "function"
+    ? (periodStart as { toDate: () => Date }).toDate()
+    : new Date(periodStart as string | number);
+  const endDate = typeof (periodEnd as { toDate?: () => Date }).toDate === "function"
+    ? (periodEnd as { toDate: () => Date }).toDate()
+    : new Date(periodEnd as string | number);
+
+  return { periodStart: startDate, periodEnd: endDate };
 }
 
 // Check token budget and return remaining tokens
 async function checkTokenBudget(
   uid: string,
   operation: RateLimitedOperation
-): Promise<{ plan: string; tokensUsed: number; tokenLimit: number; periodEnd: Date }> {
+): Promise<{ plan: string; tokensUsed: number; tokenLimit: number; periodEnd: Date | null }> {
   const profileRef = db.doc(`users/${uid}`);
-  const { periodStart, periodEnd } = getMonthlyPeriod();
-
   const profileSnap = await profileRef.get();
 
   // Get user's plan and token usage
@@ -257,18 +264,30 @@ async function checkTokenBudget(
 
   // Get current token usage
   const tokenUsage = profileData.tokenUsage || {};
-  const storedPeriodStart = tokenUsage.periodStart?.toDate?.() || new Date(0);
 
   // Determine tokens used
   // Free plan: never reset (lifetime quota)
-  // Pro plan: reset monthly
+  // Pro plan: reset based on subscription billing period
   let tokensUsed = 0;
+  let periodEnd: Date | null = null;
+
   if (plan === "free") {
     // Free plan: accumulate forever, no reset
     tokensUsed = tokenUsage.tokensUsed || 0;
   } else {
-    // Pro plan: reset if new billing period
-    if (storedPeriodStart >= periodStart) {
+    // Pro plan: check billing period from stored subscription data
+    const billingPeriod = getStoredBillingPeriod(tokenUsage);
+
+    if (billingPeriod) {
+      const now = Date.now();
+      // If we're within the stored billing period, use stored tokens
+      if (now >= billingPeriod.periodStart.getTime() && now < billingPeriod.periodEnd.getTime()) {
+        tokensUsed = tokenUsage.tokensUsed || 0;
+      }
+      // If we're past the period end, tokens reset to 0 (new period not yet recorded)
+      periodEnd = billingPeriod.periodEnd;
+    } else {
+      // No billing period stored yet, use stored tokens
       tokensUsed = tokenUsage.tokensUsed || 0;
     }
   }
@@ -282,10 +301,12 @@ async function checkTokenBudget(
         `無料枠（${(tokenLimit / 1000).toFixed(0)}Kトークン）を使い切りました。Proプランにアップグレードすると月間200万トークンまで利用できます。`
       );
     } else {
-      const daysRemaining = Math.ceil((periodEnd.getTime() - Date.now()) / (24 * 3600_000));
+      const daysRemaining = periodEnd
+        ? Math.ceil((periodEnd.getTime() - Date.now()) / (24 * 3600_000))
+        : 0;
       throw new HttpsError(
         "resource-exhausted",
-        `今月のトークン上限（${(tokenLimit / 1000).toFixed(0)}Kトークン）に達しました。${daysRemaining}日後にリセットされます。`
+        `トークン上限（${(tokenLimit / 1000).toFixed(0)}Kトークン）に達しました。${daysRemaining}日後にリセットされます。`
       );
     }
   }
@@ -299,31 +320,35 @@ async function recordTokenUsage(
   tokensUsed: number
 ): Promise<void> {
   const profileRef = db.doc(`users/${uid}`);
-  const { periodStart, periodEnd } = getMonthlyPeriod();
 
   await db.runTransaction(async (tx) => {
     const profileSnap = await tx.get(profileRef);
     const profileData = profileSnap.exists ? profileSnap.data()! : {};
     const plan: string = profileData.plan || "free";
     const existingUsage = profileData.tokenUsage || {};
-    const storedPeriodStart = existingUsage.periodStart?.toDate?.() || new Date(0);
 
     // Determine current tokens
     // Free plan: never reset (lifetime quota)
-    // Pro plan: reset monthly
+    // Pro plan: reset based on subscription billing period
     let currentTokens = 0;
+
     if (plan === "free") {
       // Free plan: accumulate forever
       currentTokens = existingUsage.tokensUsed || 0;
     } else {
-      // Pro plan: reset if new billing period
-      if (storedPeriodStart >= periodStart) {
+      // Pro plan: check if within billing period
+      const billingPeriod = getStoredBillingPeriod(existingUsage);
+      const now = Date.now();
+
+      if (billingPeriod && now >= billingPeriod.periodStart.getTime() && now < billingPeriod.periodEnd.getTime()) {
+        // Within current billing period
         currentTokens = existingUsage.tokensUsed || 0;
       }
+      // If past period end, currentTokens stays 0 (reset)
     }
 
     // Update token usage in profile
-    // For free plan, don't update periodStart/periodEnd (not relevant)
+    // Keep existing periodStart/periodEnd for Pro users (set by webhook)
     const usageUpdate = plan === "free"
       ? {
           tokensUsed: currentTokens + tokensUsed,
@@ -331,8 +356,9 @@ async function recordTokenUsage(
         }
       : {
           tokensUsed: currentTokens + tokensUsed,
-          periodStart: periodStart,
-          periodEnd: periodEnd,
+          // Preserve existing period dates (set by Stripe webhook)
+          periodStart: existingUsage.periodStart || null,
+          periodEnd: existingUsage.periodEnd || null,
           lastUpdated: FieldValue.serverTimestamp(),
         };
 
@@ -1553,6 +1579,7 @@ ${contextSection}
 
 export const getTokenUsage = onCall(
   {
+    secrets: [stripeSecretKey],
     region: "asia-northeast1",
     memory: "128MiB",
     cors: true,
@@ -1565,7 +1592,6 @@ export const getTokenUsage = onCall(
 
     const uid = request.auth.uid;
     const profileRef = db.doc(`users/${uid}`);
-    const { periodStart, periodEnd } = getMonthlyPeriod();
 
     const profileSnap = await profileRef.get();
     if (!profileSnap.exists) {
@@ -1579,29 +1605,84 @@ export const getTokenUsage = onCall(
 
     // Determine tokens used based on plan
     // Free plan: lifetime usage (no reset)
-    // Pro plan: current period usage (monthly reset)
+    // Pro plan: based on subscription billing period from Stripe
     let tokensUsed = 0;
+    let periodStart: Date | null = null;
+    let periodEnd: Date | null = null;
+    let daysUntilReset = -1;
+
     if (plan === "free") {
       // Free plan: accumulate forever
       tokensUsed = tokenUsage.tokensUsed || 0;
     } else {
-      // Pro plan: check if usage is from current period
-      const storedPeriodStart = tokenUsage.periodStart?.toDate?.() || new Date(0);
-      if (storedPeriodStart >= periodStart) {
-        tokensUsed = tokenUsage.tokensUsed || 0;
+      // Pro plan: fetch billing period directly from Stripe for accuracy
+      const subscriptionId = profileData.subscriptionId;
+
+      if (subscriptionId) {
+        try {
+          const stripe = new Stripe(stripeSecretKey.value(), {
+            apiVersion: "2026-01-28.clover",
+          });
+
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscriptionItem = subscription.items.data[0];
+
+          if (subscriptionItem?.current_period_start && subscriptionItem?.current_period_end) {
+            periodStart = new Date(subscriptionItem.current_period_start * 1000);
+            periodEnd = new Date(subscriptionItem.current_period_end * 1000);
+
+            const now = Date.now();
+
+            // Check if stored period matches Stripe period
+            const storedPeriod = getStoredBillingPeriod(tokenUsage);
+            const periodsMatch = storedPeriod &&
+              Math.abs(storedPeriod.periodStart.getTime() - periodStart.getTime()) < 60000 && // Within 1 minute
+              Math.abs(storedPeriod.periodEnd.getTime() - periodEnd.getTime()) < 60000;
+
+            if (periodsMatch) {
+              // Same period, use stored token count
+              tokensUsed = tokenUsage.tokensUsed || 0;
+            } else {
+              // Period changed (renewal happened), reset tokens and update Firestore
+              tokensUsed = 0;
+              await profileRef.update({
+                "tokenUsage.tokensUsed": 0,
+                "tokenUsage.periodStart": periodStart,
+                "tokenUsage.periodEnd": periodEnd,
+                "tokenUsage.lastUpdated": FieldValue.serverTimestamp(),
+              });
+            }
+
+            daysUntilReset = Math.max(0, Math.ceil((periodEnd.getTime() - now) / (24 * 3600_000)));
+          }
+        } catch (error) {
+          // Fallback to stored data if Stripe fetch fails
+          console.warn("Failed to fetch subscription from Stripe, using stored data:", error);
+          const storedPeriod = getStoredBillingPeriod(tokenUsage);
+          if (storedPeriod) {
+            periodStart = storedPeriod.periodStart;
+            periodEnd = storedPeriod.periodEnd;
+            tokensUsed = tokenUsage.tokensUsed || 0;
+            daysUntilReset = Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (24 * 3600_000)));
+          }
+        }
+      } else {
+        // No subscription ID, use stored data
+        const storedPeriod = getStoredBillingPeriod(tokenUsage);
+        if (storedPeriod) {
+          periodStart = storedPeriod.periodStart;
+          periodEnd = storedPeriod.periodEnd;
+          tokensUsed = tokenUsage.tokensUsed || 0;
+          daysUntilReset = Math.max(0, Math.ceil((periodEnd.getTime() - Date.now()) / (24 * 3600_000)));
+        }
       }
     }
-
-    // Calculate days until reset (only relevant for pro plan)
-    const daysUntilReset = plan === "free"
-      ? -1  // -1 indicates no reset for free plan
-      : Math.ceil((periodEnd.getTime() - Date.now()) / (24 * 3600_000));
 
     return {
       tokensUsed,
       tokenLimit,
-      periodStart: plan === "free" ? null : periodStart.toISOString(),
-      periodEnd: plan === "free" ? null : periodEnd.toISOString(),
+      periodStart: periodStart?.toISOString() || null,
+      periodEnd: periodEnd?.toISOString() || null,
       daysUntilReset,
       plan,
     };
@@ -1988,12 +2069,26 @@ export const stripeWebhook = onRequest(
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           const uid = session.client_reference_id;
+          const subscriptionId = session.subscription;
 
-          if (uid && session.subscription) {
-            const { periodStart, periodEnd } = getMonthlyPeriod();
+          if (uid && subscriptionId) {
+            // Fetch subscription to get billing period
+            const subscription = await stripe.subscriptions.retrieve(
+              typeof subscriptionId === "string" ? subscriptionId : subscriptionId.id
+            );
+
+            // Get billing period from subscription item
+            const subscriptionItem = subscription.items.data[0];
+            const periodStart = subscriptionItem?.current_period_start
+              ? new Date(subscriptionItem.current_period_start * 1000)
+              : new Date();
+            const periodEnd = subscriptionItem?.current_period_end
+              ? new Date(subscriptionItem.current_period_end * 1000)
+              : new Date(Date.now() + 30 * 24 * 3600_000); // Fallback: 30 days
+
             await db.doc(`users/${uid}`).update({
               plan: "pro",
-              subscriptionId: session.subscription,
+              subscriptionId: typeof subscriptionId === "string" ? subscriptionId : subscriptionId.id,
               subscriptionStatus: "active",
               tokenUsage: {
                 tokensUsed: 0,
@@ -2002,7 +2097,40 @@ export const stripeWebhook = onRequest(
                 lastUpdated: FieldValue.serverTimestamp(),
               },
             });
-            console.log(`User ${uid} upgraded to Pro`);
+            console.log(`User ${uid} upgraded to Pro, period: ${periodStart.toISOString()} - ${periodEnd.toISOString()}`);
+          }
+          break;
+        }
+
+        case "invoice.paid": {
+          // Handle subscription renewal - update billing period
+          const invoice = event.data.object as Stripe.Invoice;
+          const subscriptionId = invoice.parent?.subscription_details?.subscription;
+
+          // Only process renewal invoices (not initial subscription)
+          if (subscriptionId && typeof subscriptionId === "string" && invoice.billing_reason === "subscription_cycle") {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            const uid = subscription.metadata.firebaseUid;
+
+            if (uid) {
+              // Get new billing period from subscription
+              const subscriptionItem = subscription.items.data[0];
+              const periodStart = subscriptionItem?.current_period_start
+                ? new Date(subscriptionItem.current_period_start * 1000)
+                : new Date();
+              const periodEnd = subscriptionItem?.current_period_end
+                ? new Date(subscriptionItem.current_period_end * 1000)
+                : new Date(Date.now() + 30 * 24 * 3600_000);
+
+              // Reset token usage for new billing period
+              await db.doc(`users/${uid}`).update({
+                "tokenUsage.tokensUsed": 0,
+                "tokenUsage.periodStart": periodStart,
+                "tokenUsage.periodEnd": periodEnd,
+                "tokenUsage.lastUpdated": FieldValue.serverTimestamp(),
+              });
+              console.log(`User ${uid} subscription renewed, new period: ${periodStart.toISOString()} - ${periodEnd.toISOString()}`);
+            }
           }
           break;
         }

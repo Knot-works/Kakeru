@@ -354,7 +354,9 @@ export default function SettingsPage() {
                 <p className="text-xs text-muted-foreground">
                   {tokenUsage.plan === "free"
                     ? "無料枠（リセットなし）"
-                    : `${tokenUsage.daysUntilReset}日後にリセット`
+                    : tokenUsage.periodEnd
+                      ? `次回リセット: ${new Date(tokenUsage.periodEnd).toLocaleDateString("ja-JP", { month: "long", day: "numeric" })}（${tokenUsage.daysUntilReset}日後）`
+                      : `${tokenUsage.daysUntilReset}日後にリセット`
                   }
                 </p>
               </div>
@@ -363,7 +365,7 @@ export default function SettingsPage() {
               {tokenUsage.plan === "free" && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
                   <p className="text-sm text-muted-foreground">
-                    無料枠を使い切ると、<span className="font-medium text-foreground">Proプラン</span>へのアップグレードが必要です。Proプランでは月間200万トークンまで利用でき、毎月リセットされます。
+                    無料枠を使い切ると、<span className="font-medium text-foreground">Proプラン</span>へのアップグレードが必要です。Proプランでは月間200万トークンまで利用でき、請求サイクルごとにリセットされます。
                   </p>
                 </div>
               )}
