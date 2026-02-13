@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, PenLine, Copy, Check, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/auth-context";
+import { useSEO } from "@/hooks/use-seo";
 
 function getBrowserInfo(): string {
   const ua = navigator.userAgent;
@@ -40,6 +41,12 @@ function getBrowserInfo(): string {
 const DEFAULT_SUBJECT = "Writtoに関するお問い合わせ";
 
 export default function ContactPage() {
+  useSEO({
+    title: "お問い合わせ",
+    description: "Writtoへのお問い合わせ。ご質問、ご要望、不具合報告などお気軽にご連絡ください。",
+    canonical: "/contact",
+  });
+
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
 

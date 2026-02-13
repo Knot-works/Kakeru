@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, HelpCircle, PenLine, ChevronDown, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSEO } from "@/hooks/use-seo";
 
 interface FAQItem {
   question: string;
@@ -181,6 +182,12 @@ function FAQAccordion({ item, isOpen, onToggle }: { item: FAQItem; isOpen: boole
 }
 
 export default function FAQPage() {
+  useSEO({
+    title: "よくある質問",
+    description: "Writtoに関するよくある質問と回答。サービス内容、料金プラン、学習方法などについてお答えします。",
+    canonical: "/faq",
+  });
+
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const handleToggle = (index: number) => {

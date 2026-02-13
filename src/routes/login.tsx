@@ -2,8 +2,15 @@ import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function LoginPage() {
+  useSEO({
+    title: "ログイン",
+    description: "Writtoにログインして英語ライティング学習を始めましょう。Googleアカウントで簡単登録。",
+    canonical: "/login",
+  });
+
   const { user, profile, loading, profileLoaded, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 

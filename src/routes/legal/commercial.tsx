@@ -1,8 +1,15 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Scale, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function CommercialPage() {
+  useSEO({
+    title: "特定商取引法に基づく表記",
+    description: "Writtoの特定商取引法に基づく表記。販売事業者情報、支払い方法、返品規定などをご確認ください。",
+    canonical: "/legal/commercial",
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

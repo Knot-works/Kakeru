@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Target, Heart, Sparkles, Users } from "lucide-react";
+import { useSEO } from "@/hooks/use-seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -22,6 +23,12 @@ const VALUES = [
 ];
 
 export default function AboutPage() {
+  useSEO({
+    title: "Writtoについて",
+    description: "Writtoは「書ける」自分になるためのAI英語ライティング学習サービス。一人ひとりの目標と興味に合わせた学習体験を提供します。",
+    canonical: "/about",
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

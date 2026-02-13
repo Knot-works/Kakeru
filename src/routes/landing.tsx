@@ -13,6 +13,7 @@ import {
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { FlipWords } from "@/components/ui/flip-words";
 import { HoverEffect } from "@/components/ui/card-hover-effect";
+import { useSEO } from "@/hooks/use-seo";
 
 // Animate benefits/outcomes instead of specific goals to be more inclusive
 const FLIP_WORDS = ["楽しく", "着実に", "あなたのペースで", "AIと一緒に"];
@@ -61,6 +62,10 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  useSEO({
+    canonical: "/",
+  });
+
   return (
     <div className="min-h-screen overflow-hidden paper-texture">
       {/* Navigation */}

@@ -1,8 +1,15 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Shield, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function PrivacyPage() {
+  useSEO({
+    title: "プライバシーポリシー",
+    description: "Writtoのプライバシーポリシー。個人情報の取り扱いについてご説明します。",
+    canonical: "/privacy",
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

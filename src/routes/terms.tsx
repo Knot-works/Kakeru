@@ -1,8 +1,15 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, FileText, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSEO } from "@/hooks/use-seo";
 
 export default function TermsPage() {
+  useSEO({
+    title: "利用規約",
+    description: "Writtoの利用規約。サービスをご利用いただく際の条件をご確認ください。",
+    canonical: "/terms",
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

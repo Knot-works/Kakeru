@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { callCreateCheckoutSession } from "@/lib/functions";
 import { Analytics } from "@/lib/firebase";
+import { useSEO } from "@/hooks/use-seo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,12 @@ const PRO_FEATURES = [
 ];
 
 export default function PricingPage() {
+  useSEO({
+    title: "料金プラン",
+    description: "Writtoの料金プラン。無料プランで始めて、Proプランでさらに充実した学習体験を。月額980円から。",
+    canonical: "/pricing",
+  });
+
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const currentPlan = profile?.plan || "free";
