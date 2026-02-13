@@ -638,11 +638,13 @@ ${modeInstruction}${personaInstruction}
   "hint": "ヒントとなる英語表現（1〜2個）",
   "recommendedWords": 推奨語数（数値）,
   "exampleJa": "このお題に対する日本語の例文（ユーザーが参考にできる具体的な内容）",
-  "keywords": ["キーワード1", "キーワード2", "キーワード3"]
+  "keywords": ["English keyword 1", "English keyword 2", "English keyword 3"]
 }
 
-keywordsには、このお題の回答で使うと良い英単語・英語表現を3つ選んでください。
+【重要】keywordsは必ず英語で記述してください。日本語のキーワードは絶対に含めないでください。
+このお題の回答で使うと良い英単語・英語表現を3つ選んでください。
 レベルに応じた難易度で、実際に使いやすい表現を選んでください。
+例: "fitness event", "health benefits", "participate in"
 
 お題は具体的なシチュエーションを設定し、レベルに応じた語数を推奨してください。
 初級: 30-50語、中級: 60-100語、上級: 100-150語を目安にしてください。
