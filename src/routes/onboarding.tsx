@@ -216,17 +216,22 @@ export default function OnboardingPage() {
     );
   }
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6 paper-texture">
-      <div className="w-full max-w-lg space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="font-serif text-3xl">プロフィール設定</h1>
-          <p className="text-muted-foreground">
-            あなたに合ったお題を出すために教えてください
-          </p>
-        </div>
+  // When feedback is shown, use a scrollable layout instead of centered
+  const showFeedbackLayout = step === 5 && feedback;
 
-        <Progress value={progress} className="h-1.5" />
+  return (
+    <div className={`min-h-screen p-6 paper-texture ${showFeedbackLayout ? "py-8" : "flex flex-col items-center justify-center"}`}>
+      <div className={`w-full mx-auto space-y-8 ${showFeedbackLayout ? "max-w-xl" : "max-w-lg"}`}>
+        {!showFeedbackLayout && (
+          <div className="space-y-2 text-center">
+            <h1 className="font-serif text-3xl">プロフィール設定</h1>
+            <p className="text-muted-foreground">
+              あなたに合ったお題を出すために教えてください
+            </p>
+          </div>
+        )}
+
+        {!showFeedbackLayout && <Progress value={progress} className="h-1.5" />}
 
         {/* Step 1: Goal */}
         {step === 1 && (
@@ -723,119 +728,132 @@ export default function OnboardingPage() {
                 </Button>
               </>
             ) : (
-              /* Feedback Display */
+              /* Feedback Display - Full page view */
               <AnimatePresence mode="wait">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
-                  className="space-y-5"
+                  className="space-y-6"
                 >
-                  {/* Celebration */}
+                  {/* Celebration Header */}
                   <div className="text-center">
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                      className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg"
+                      className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-xl"
                     >
-                      <Trophy className="h-8 w-8" />
+                      <Trophy className="h-10 w-10" />
                     </motion.div>
-                    <h3 className="font-serif text-xl">おめでとうございます！</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <h3 className="font-serif text-2xl">おめでとうございます！</h3>
+                    <p className="mt-2 text-muted-foreground">
                       はじめてのライティングが完了しました
                     </p>
                   </div>
 
-                  {/* Score Card */}
+                  {/* Score Summary - Compact horizontal */}
                   <Card className="overflow-hidden">
-                    <div className="bg-gradient-to-r from-primary to-primary/80 p-4 text-center text-white">
-                      <p className="text-sm font-medium text-white/80">あなたの評価</p>
-                      <div className="mt-1 flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-primary/10">
+                      <div className="flex items-center gap-4">
                         <RankBadge rank={feedback.overallRank as Rank} size="lg" />
+                        <div className="flex gap-3">
+                          {[
+                            { label: "文法", rank: feedback.grammarRank },
+                            { label: "語彙", rank: feedback.vocabularyRank },
+                            { label: "構成", rank: feedback.structureRank },
+                            { label: "内容", rank: feedback.contentRank },
+                          ].map((item) => (
+                            <div key={item.label} className="text-center">
+                              <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                              <p className="font-serif text-base font-bold">{item.rank}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-4 gap-2 text-center">
-                        {[
-                          { label: "文法", rank: feedback.grammarRank },
-                          { label: "語彙", rank: feedback.vocabularyRank },
-                          { label: "構成", rank: feedback.structureRank },
-                          { label: "内容", rank: feedback.contentRank },
-                        ].map((item) => (
-                          <div key={item.label} className="space-y-1">
-                            <p className="text-xs text-muted-foreground">{item.label}</p>
-                            <p className="font-serif text-lg font-bold">{item.rank}</p>
-                          </div>
-                        ))}
-                      </div>
-                      {feedback.summary && (
-                        <p className="mt-3 text-sm text-muted-foreground border-t pt-3">
+                    {feedback.summary && (
+                      <div className="px-4 py-3 border-t">
+                        <p className="text-sm text-foreground/80 leading-relaxed">
                           {feedback.summary}
                         </p>
-                      )}
-                    </CardContent>
+                      </div>
+                    )}
                   </Card>
 
-                  {/* Corrections */}
+                  {/* Corrections - Full width, no scroll limit */}
                   {feedback.improvements && feedback.improvements.length > 0 && (
-                    <div className="space-y-3">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        修正ポイント（{feedback.improvements.length}件）
-                      </p>
-                      <div className="space-y-2 max-h-[240px] overflow-y-auto">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <h4 className="font-medium">
+                          修正ポイント
+                          <span className="ml-2 text-sm text-muted-foreground font-normal">
+                            {feedback.improvements.length}件
+                          </span>
+                        </h4>
+                      </div>
+                      <div className="space-y-3">
                         {feedback.improvements.map((imp, index) => {
                           const typeStyles: Record<string, { bg: string; border: string; text: string; label: string }> = {
-                            grammar: { bg: "bg-rose-500/10", border: "border-rose-500/30", text: "text-rose-600", label: "文法" },
-                            vocabulary: { bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-600", label: "語彙" },
-                            structure: { bg: "bg-sky-500/10", border: "border-sky-500/30", text: "text-sky-600", label: "構成" },
-                            content: { bg: "bg-violet-500/10", border: "border-violet-500/30", text: "text-violet-600", label: "内容" },
+                            grammar: { bg: "bg-rose-500/10", border: "border-rose-500/30", text: "text-rose-600 dark:text-rose-400", label: "文法" },
+                            vocabulary: { bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-600 dark:text-amber-400", label: "語彙" },
+                            structure: { bg: "bg-sky-500/10", border: "border-sky-500/30", text: "text-sky-600 dark:text-sky-400", label: "構成" },
+                            content: { bg: "bg-violet-500/10", border: "border-violet-500/30", text: "text-violet-600 dark:text-violet-400", label: "内容" },
                           };
                           const style = typeStyles[imp.type] || typeStyles.grammar;
                           return (
-                            <div
+                            <Card
                               key={index}
-                              className={`rounded-lg border ${style.border} ${style.bg} p-3`}
+                              className={`border ${style.border} ${style.bg}`}
                             >
-                              <Badge
-                                variant="secondary"
-                                className={`${style.bg} ${style.text} border-0 text-[10px] font-medium mb-2`}
-                              >
-                                {style.label}
-                              </Badge>
-                              <div className="rounded bg-background/80 px-2 py-1.5 mb-2">
-                                <p className="text-sm text-muted-foreground">{imp.original}</p>
-                                <p className={`text-sm font-medium ${style.text}`}>→ {imp.suggested}</p>
-                              </div>
-                              <p className="text-xs text-foreground/70 leading-relaxed">
-                                {imp.explanation}
-                              </p>
-                            </div>
+                              <CardContent className="p-4">
+                                <Badge
+                                  variant="secondary"
+                                  className={`${style.bg} ${style.text} border-0 text-xs font-medium mb-3`}
+                                >
+                                  {style.label}
+                                </Badge>
+                                <div className="rounded-lg bg-background/80 px-4 py-3 mb-3">
+                                  <p className="text-base text-muted-foreground line-through decoration-1">
+                                    {imp.original}
+                                  </p>
+                                  <p className={`text-base font-semibold ${style.text} mt-1`}>
+                                    → {imp.suggested}
+                                  </p>
+                                </div>
+                                <p className="text-sm text-foreground/80 leading-relaxed">
+                                  {imp.explanation}
+                                </p>
+                              </CardContent>
+                            </Card>
                           );
                         })}
                       </div>
                     </div>
                   )}
 
-                  {/* Continue Button */}
-                  <Button
-                    onClick={handleComplete}
-                    disabled={saving}
-                    className="w-full gap-2"
-                    size="lg"
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        保存中...
-                      </>
-                    ) : (
-                      <>
-                        学習をはじめる
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
+                  {/* Continue Button - Sticky at bottom on mobile */}
+                  <div className="sticky bottom-4 pt-4">
+                    <Button
+                      onClick={handleComplete}
+                      disabled={saving}
+                      className="w-full gap-2 shadow-lg"
+                      size="lg"
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          保存中...
+                        </>
+                      ) : (
+                        <>
+                          学習をはじめる
+                          <ArrowRight className="h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </motion.div>
               </AnimatePresence>
             )}
