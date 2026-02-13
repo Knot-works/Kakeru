@@ -39,26 +39,35 @@ export default function DashboardPage() {
   const [allWritings, setAllWritings] = useState<Writing[]>([]);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [showFirstWritingTooltip, setShowFirstWritingTooltip] = useState(false);
+  const [pendingTooltip, setPendingTooltip] = useState(false);
 
-  // Show tooltip if coming from onboarding with first writing
+  // Check if coming from onboarding with first writing
   useEffect(() => {
     if (searchParams.get("firstWriting") === "true") {
+      setPendingTooltip(true);
       // Remove param from URL without navigation
       setSearchParams({}, { replace: true });
-      // Show tooltip after a short delay for writings to load
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Show tooltip after writings are loaded
+  useEffect(() => {
+    if (pendingTooltip && !loading && writings.length > 0) {
+      setPendingTooltip(false);
+      // Small delay for smooth animation after render
       const showTimer = setTimeout(() => {
         setShowFirstWritingTooltip(true);
-      }, 500);
+      }, 300);
       // Auto-hide after 4 seconds
       const hideTimer = setTimeout(() => {
         setShowFirstWritingTooltip(false);
-      }, 4500);
+      }, 4300);
       return () => {
         clearTimeout(showTimer);
         clearTimeout(hideTimer);
       };
     }
-  }, [searchParams, setSearchParams]);
+  }, [pendingTooltip, loading, writings.length]);
 
   useEffect(() => {
     if (user) {
