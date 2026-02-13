@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Link, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { getWritings, getUserStats, getDailyPromptsFromCache } from "@/lib/firestore";
 import { callGetDailyPrompts, type DailyPrompts } from "@/lib/functions";
@@ -29,6 +29,7 @@ const DAILY_MODES: { key: keyof DailyPrompts; mode: WritingMode; label: string }
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [writings, setWritings] = useState<Writing[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,27 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<keyof DailyPrompts>("goal");
   const [allWritings, setAllWritings] = useState<Writing[]>([]);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [showFirstWritingTooltip, setShowFirstWritingTooltip] = useState(false);
+
+  // Show tooltip if coming from onboarding with first writing
+  useEffect(() => {
+    if (searchParams.get("firstWriting") === "true") {
+      // Remove param from URL without navigation
+      setSearchParams({}, { replace: true });
+      // Show tooltip after a short delay for writings to load
+      const showTimer = setTimeout(() => {
+        setShowFirstWritingTooltip(true);
+      }, 500);
+      // Auto-hide after 4 seconds
+      const hideTimer = setTimeout(() => {
+        setShowFirstWritingTooltip(false);
+      }, 4500);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (user) {
@@ -232,7 +254,7 @@ export default function DashboardPage() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {writings.map((w) => (
+            {writings.map((w, index) => (
               <Card key={w.id} className="transition-shadow hover:shadow-md">
                 <CardContent className="flex items-center gap-4 p-4">
                   <RankBadge rank={w.feedback.overallRank} size="sm" />
@@ -243,7 +265,26 @@ export default function DashboardPage() {
                       {w.createdAt.toLocaleDateString("ja-JP")}
                     </p>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="relative flex gap-1">
+                    {/* First writing tooltip */}
+                    <AnimatePresence>
+                      {index === 0 && showFirstWritingTooltip && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                          className="absolute -top-14 right-0 z-50 whitespace-nowrap"
+                        >
+                          <div className="relative rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg">
+                            <Sparkles className="inline h-3.5 w-3.5 mr-1.5" />
+                            先ほどの結果を詳しく見てみましょう！
+                            {/* Arrow */}
+                            <div className="absolute -bottom-2 right-6 h-0 w-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-primary" />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     <Link to={`/write/result/${w.id}`}>
                       <Button variant="ghost" size="sm" className="gap-1.5">
                         <Eye className="h-3.5 w-3.5" />

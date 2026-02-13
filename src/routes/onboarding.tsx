@@ -148,7 +148,8 @@ export default function OnboardingPage() {
       await saveUserProfile(user.uid, profile as Parameters<typeof saveUserProfile>[1]);
 
       // Save the practice writing if we have feedback
-      if (feedback && practiceAnswer.trim()) {
+      const hasCompletedWriting = feedback && practiceAnswer.trim();
+      if (hasCompletedWriting) {
         await saveWriting(user.uid, {
           mode: "goal",
           prompt: PRACTICE_PROMPT,
@@ -161,7 +162,8 @@ export default function OnboardingPage() {
       }
 
       await refreshProfile();
-      navigate("/dashboard");
+      // Pass flag to show tooltip if user completed writing
+      navigate(hasCompletedWriting ? "/dashboard?firstWriting=true" : "/dashboard");
     } catch (error) {
       console.error("Failed to save profile:", error);
     } finally {
