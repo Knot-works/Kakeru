@@ -38,6 +38,7 @@ export interface GradingResult {
 
 interface GradingContextType {
   status: GradingStatus;
+  currentRequest: GradingRequest | null; // Available during loading
   result: GradingResult | null;
   error: Error | null;
   isRateLimit: boolean;
@@ -49,6 +50,7 @@ const GradingContext = createContext<GradingContextType | undefined>(undefined);
 
 export function GradingProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GradingStatus>("idle");
+  const [currentRequest, setCurrentRequest] = useState<GradingRequest | null>(null);
   const [result, setResult] = useState<GradingResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [isRateLimit, setIsRateLimit] = useState(false);
@@ -60,8 +62,9 @@ export function GradingProvider({ children }: { children: ReactNode }) {
     if (isGradingRef.current) return;
     isGradingRef.current = true;
 
-    // Reset state
+    // Reset state and store current request for display
     setStatus("loading");
+    setCurrentRequest(request);
     setResult(null);
     setError(null);
     setIsRateLimit(false);
@@ -125,6 +128,7 @@ export function GradingProvider({ children }: { children: ReactNode }) {
 
   const reset = useCallback(() => {
     setStatus("idle");
+    setCurrentRequest(null);
     setResult(null);
     setError(null);
     setIsRateLimit(false);
@@ -133,7 +137,7 @@ export function GradingProvider({ children }: { children: ReactNode }) {
 
   return (
     <GradingContext.Provider
-      value={{ status, result, error, isRateLimit, startGrading, reset }}
+      value={{ status, currentRequest, result, error, isRateLimit, startGrading, reset }}
     >
       {children}
     </GradingContext.Provider>

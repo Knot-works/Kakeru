@@ -15,6 +15,7 @@ import { SentenceFeedback } from "@/components/writing/sentence-feedback";
 import { StructureAnalysis } from "@/components/writing/structure-analysis";
 import { LearningPoints } from "@/components/writing/learning-points";
 import { SelectionPopover } from "@/components/ui/selection-popover";
+import { GradingInProgress } from "@/components/writing/grading-in-progress";
 import {
   ArrowLeft,
   BookOpen,
@@ -215,31 +216,7 @@ export default function ResultPage() {
 
   // Show grading-in-progress UI for pending state
   if (isPending && gradingStatus === "loading") {
-    return (
-      <div className="mx-auto max-w-4xl px-4">
-        <div className="flex min-h-[60vh] flex-col items-center justify-center">
-          <div className="flex flex-col items-center gap-6 text-center">
-            <div className="relative">
-              <div className="h-20 w-20 rounded-full border-4 border-primary/20" />
-              <div className="absolute inset-0 h-20 w-20 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-            </div>
-            <div className="space-y-2">
-              <p className="font-serif text-xl font-medium grading-pulse">
-                添削中...
-              </p>
-              <p className="text-sm text-muted-foreground">
-                AIがあなたの英文を分析しています
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="h-2 w-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <GradingInProgress />;
   }
 
   if (loading) {
