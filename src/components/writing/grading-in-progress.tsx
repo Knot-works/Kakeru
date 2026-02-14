@@ -10,7 +10,11 @@ const STAGES = [
   { id: "feedback", label: "フィードバックを作成", icon: Lightbulb },
 ] as const;
 
-export function GradingInProgress() {
+interface GradingInProgressProps {
+  compact?: boolean;
+}
+
+export function GradingInProgress({ compact = false }: GradingInProgressProps) {
   const [currentStage, setCurrentStage] = useState(0);
 
   // Progress through stages
@@ -26,7 +30,7 @@ export function GradingInProgress() {
   }, []);
 
   return (
-    <div className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-4">
+    <div className={`flex items-center justify-center ${compact ? "py-8" : "min-h-[calc(100vh-12rem)] px-4"}`}>
       {/* Progress Stages - Centered */}
       <div className="w-full max-w-sm">
         <Card className="w-full border-primary/20 bg-gradient-to-br from-primary/[0.03] to-transparent animate-scale-in">

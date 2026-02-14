@@ -650,7 +650,7 @@ export default function OnboardingPage() {
             </div>
 
             {grading ? (
-              <GradingInProgress />
+              <GradingInProgress compact />
             ) : !feedback ? (
               <>
                 {/* Prompt Card */}
@@ -752,7 +752,7 @@ export default function OnboardingPage() {
                     <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/5 to-primary/10">
                       <div className="flex items-center gap-4">
                         <RankBadge rank={feedback.overallRank as Rank} size="lg" />
-                        <div className="flex gap-3">
+                        <div className="flex gap-4">
                           {[
                             { label: "文法", rank: feedback.grammarRank },
                             { label: "語彙", rank: feedback.vocabularyRank },
@@ -760,8 +760,8 @@ export default function OnboardingPage() {
                             { label: "内容", rank: feedback.contentRank },
                           ].map((item) => (
                             <div key={item.label} className="text-center">
-                              <p className="text-[10px] text-muted-foreground">{item.label}</p>
-                              <p className="font-serif text-base font-bold">{item.rank}</p>
+                              <p className="text-xs text-muted-foreground">{item.label}</p>
+                              <p className="font-serif text-lg font-bold">{item.rank}</p>
                             </div>
                           ))}
                         </div>
