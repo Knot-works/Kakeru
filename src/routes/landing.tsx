@@ -70,9 +70,9 @@ export default function LandingPage() {
     <div className="min-h-screen overflow-hidden paper-texture">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Writto" className="h-8 w-auto" />
+            <img src="/logo.png" alt="Writto" className="h-6 w-auto" />
             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
               Beta
             </span>
@@ -261,7 +261,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/logo.png" alt="Writto" className="h-7 w-auto" />
+                <img src="/logo.png" alt="Writto" className="h-6 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 AIを活用した英語ライティング学習サービス

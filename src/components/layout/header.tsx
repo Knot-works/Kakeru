@@ -177,11 +177,11 @@ export function Header() {
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2.5 group">
+          <Link to="/dashboard" className="flex items-center gap-2 group">
             <img
               src="/logo.png"
               alt="Writto"
-              className="h-9 w-auto transition-transform group-hover:scale-105"
+              className="h-6 w-auto transition-transform group-hover:scale-105"
             />
             <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
               Beta
