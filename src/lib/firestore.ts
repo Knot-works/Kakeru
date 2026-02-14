@@ -224,6 +224,53 @@ export async function updateUserStats(
   });
 }
 
+function getTodayDateString(): string {
+  return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+}
+
+function getYesterdayDateString(): string {
+  return new Date(Date.now() + 9 * 3600_000 - 24 * 3600_000).toISOString().slice(0, 10);
+}
+
+export async function updateStreak(userId: string): Promise<void> {
+  const statsRef = doc(db, "users", userId, "meta", "stats");
+  const statsSnap = await getDoc(statsRef);
+  const stats = statsSnap.exists() ? (statsSnap.data() as UserStats) : null;
+
+  const today = getTodayDateString();
+  const yesterday = getYesterdayDateString();
+
+  const lastWritingDate = stats?.lastWritingDate;
+  let currentStreak = stats?.currentStreak || 0;
+  let bestStreak = stats?.bestStreak || 0;
+
+  if (lastWritingDate === today) {
+    // Already wrote today, no change
+    return;
+  } else if (lastWritingDate === yesterday) {
+    // Consecutive day
+    currentStreak += 1;
+  } else {
+    // Streak broken or first writing
+    currentStreak = 1;
+  }
+
+  if (currentStreak > bestStreak) {
+    bestStreak = currentStreak;
+  }
+
+  await setDoc(
+    statsRef,
+    {
+      currentStreak,
+      bestStreak,
+      lastWritingDate: today,
+      totalWritings: (stats?.totalWritings || 0) + 1,
+    },
+    { merge: true }
+  );
+}
+
 // ============ Mistakes (間違いノート) ============
 
 export async function saveMistakes(

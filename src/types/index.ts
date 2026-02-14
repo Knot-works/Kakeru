@@ -286,6 +286,7 @@ export interface UserStats {
   totalWritings: number;
   currentStreak: number;
   bestStreak: number;
+  lastWritingDate?: string;
   rankHistory: { date: string; rank: Rank }[];
   weakPoints: {
     grammar: number;

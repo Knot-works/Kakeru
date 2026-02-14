@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { callGradeWriting, isRateLimitError } from "@/lib/functions";
-import { saveWriting, saveMistakes } from "@/lib/firestore";
+import { saveWriting, saveMistakes, updateStreak } from "@/lib/firestore";
 import { Analytics } from "@/lib/firebase";
 import type { UserProfile, WritingMode, WritingFeedback } from "@/types";
 
@@ -90,6 +90,9 @@ export function GradingProvider({ children }: { children: ReactNode }) {
           feedback,
           wordCount: request.wordCount,
         });
+
+        // Update streak
+        await updateStreak(request.userId);
 
         // Track analytics
         Analytics.writingSubmitted({ mode: request.mode, wordCount: request.wordCount, timeTakenSec: 0 });

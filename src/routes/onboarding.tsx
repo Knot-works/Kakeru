@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
-import { saveUserProfile, saveWriting } from "@/lib/firestore";
+import { saveUserProfile, saveWriting, updateStreak } from "@/lib/firestore";
 import { callGradeWriting } from "@/lib/functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -159,6 +159,7 @@ export default function OnboardingPage() {
           feedback,
           wordCount,
         });
+        await updateStreak(user.uid);
       }
 
       await refreshProfile();
