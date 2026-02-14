@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { TagInput } from "@/components/ui/tag-input";
 import { Badge } from "@/components/ui/badge";
 import { RankBadge } from "@/components/writing/rank-badge";
+import { GradingInProgress } from "@/components/writing/grading-in-progress";
 import {
   Briefcase,
   Plane,
@@ -648,7 +649,9 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {!feedback ? (
+            {grading ? (
+              <GradingInProgress />
+            ) : !feedback ? (
               <>
                 {/* Prompt Card */}
                 <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/[0.03]">
@@ -680,7 +683,6 @@ export default function OnboardingPage() {
                     onChange={(e) => setPracticeAnswer(e.target.value)}
                     rows={5}
                     className="resize-none text-base leading-relaxed"
-                    disabled={grading}
                   />
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{wordCount} 語</span>
@@ -695,7 +697,6 @@ export default function OnboardingPage() {
                   <Button
                     variant="outline"
                     onClick={() => setStep(4)}
-                    disabled={grading}
                     className="gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -703,20 +704,11 @@ export default function OnboardingPage() {
                   </Button>
                   <Button
                     onClick={handleSubmitPractice}
-                    disabled={grading || wordCount < 3}
+                    disabled={wordCount < 3}
                     className="flex-1 gap-2"
                   >
-                    {grading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        添削中...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        添削してもらう
-                      </>
-                    )}
+                    <Send className="h-4 w-4" />
+                    添削してもらう
                   </Button>
                 </div>
 
@@ -724,7 +716,7 @@ export default function OnboardingPage() {
                 <Button
                   variant={gradingError ? "outline" : "ghost"}
                   onClick={handleComplete}
-                  disabled={saving || grading}
+                  disabled={saving}
                   className={`w-full ${gradingError ? "" : "text-muted-foreground"}`}
                 >
                   {gradingError ? "スキップして始める" : "この練習をスキップ"}
